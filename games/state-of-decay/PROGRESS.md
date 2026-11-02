@@ -96,6 +96,14 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - zombie animations reach the joining machine sooner
+- Zombie clips (hit reactions, falls) went to the joining machines at most every 0.5 s from a relay loop that
+  sleeps 0.25 s between rounds, i.e. up to ~0.75 s late plus network (owner: "zombies react later to the hit").
+  `hud_relay` now watches zombie_sync's clip counter every 30 ms between rounds and sends the zombie list as soon
+  as a new clip started (at most every 0.1 s); the other relays keep their pace. The relay runs; not checked
+  against real hits yet (no live zombie near the players in this save at the time).
+- Dead zombies sinking into the ground on the joining machine: not investigated yet (needs a kill).
+
 ### 2026-11-02 - joining player's sprint at obstacles fixed; intermittent host start hang
 - Sprint "falling" loop: pressed against an obstacle (porch next to Door_4), the joining player's height jitters
   by ~0.1 m and its own state machine flipped Fall.FromRunning <-> Land.Running every few frames, while its host
