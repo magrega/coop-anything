@@ -96,6 +96,21 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - sprint after doors fixed
+- Cause: on the joining machine `door_sync`'s stub mirrors the players' door states from the host by writing the
+  state index (entry/exit actions skipped). Going back to idle that way never ended the door state's modes: during
+  one door use the joining player's state machine began ContextTagMode x2, StateMachineAnimationMode and
+  AnimationControlsRotationMode and never ended them (`action_probe.py`, now limited to the named action types:
+  swapping the unnamed entries 0xA3+ crashed the game), and its graph-driven Sprint never started again.
+- Fix: the return to idle is now requested like a native transition (pending state +0xE, flag +0x18; applied by
+  0x1633DB0 -> 0x1633B20 in the next tick, which runs the door state's exit actions and switches the
+  "StateMachine" graph input off). Door states themselves are still written directly (their entry actions need the
+  host's door context).
+- Verified on one PC: fresh sprint 15.7 m; after opening a door 15.5 m (Sprint.RunForward); after closing it
+  15.8 m. Before the fix: after any door the player never entered Sprint again (Shift held: 8-9 m, plain run).
+  Locked-door use not re-tested after the fix. The separate intermittent Fall while sprinting up a small rise is
+  still open.
+
 ### 2026-11-02 - zombie animations reach the joining machine sooner
 - Zombie clips (hit reactions, falls) went to the joining machines at most every 0.5 s from a relay loop that
   sleeps 0.25 s between rounds, i.e. up to ~0.75 s late plus network (owner: "zombies react later to the hit").
