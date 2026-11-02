@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - rejoin suite rerun: rejoining works, searching on the host does not start
+- `rejoin_suite.sh` (fresh 4-player New Story, `COOP_HOUR=12`): Ed left and came back with his agent run from
+  the second-PC bundle and got his old slot and character back (ed_jones.cdf), and the host's time right after
+  joining. The 4th player left and came back into its freed slot. All four stayed alive through the soak.
+- Simultaneous loot: FAIL, but not the wrong-panel race. No search starts at all: in `loot_two.py` neither
+  search completed, and in the soak 5 of 5 searches were "incomplete". The host's copy of a joining player
+  standing at node 0x5BD stays in `GraphDriven.Observer` with interaction kind 0 and no focused node (its
+  manager +0x40 = -1), even with nobody else near and the zombies parked. Ed's own screen shows "Search (Hold)"
+  there. Use only gave a push kick.
+- On the host the interaction finder 0x1464000 runs for all four players (64 calls each in 2 s), but its node
+  candidate check 0x14569A0 (called only from 0x14646BA) never runs. The gate before it needs a blackboard slot
+  index at +0x1528 whose flag at +0x11A0 + slot has bit 0 set. All players had slot 31 with the flag 0, and Ed's
+  own machine shows the same, so this gate may not be the search path. Open. Same symptom as the 10-29 note (no
+  search context at these containers after that day); it needs a fresh session with the host's player at a
+  fresh container to tell a broken host search from a used-up spot.
+- Second PC: its share still returns "Permission denied" from this PC, so nothing new was copied or tested there.
+
 ### 2026-11-02 - time of day: the host's clock runs again, players follow it, daytime on request
 - Why it was always night on the host: as a listen server the host runs CryAction's server time-of-day rule
   (0x6E9FD0) every frame. With `sv_timeofdayenable 0` (the default) it still calls the engine's
