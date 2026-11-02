@@ -96,6 +96,18 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - flashlight: each player's T switches only its own light
+- UL_Flashlight's compiled script (string constants via string.dump): OnInit calls self:OnReset(), which places a
+  projector light (LoadLight, flashlight1.tif) by g_localActor, sets the blackboard "Game.Player.LightOn" and plays
+  flashlight_on/off, or frees the light slot. g_localActor is the machine's own player, so every replicated
+  flashlight entity switched the local player's light: the host's T lit the joining player's too, and a joining
+  player's T (its host copy spawns the entity on the host) switched the host's.
+- New `flashlight_fix.py` (installed by coop_setup on the host and on every joining machine): UL_Flashlight.OnReset
+  (looked up by name from OnInit; OnInit itself is cached by the engine, a wrapper on it never ran) runs only when
+  the entity's nearest player is this machine's own. Verified on one PC: host T -> host's entity runs on the host,
+  skipped on the joining machine; joining player's T -> skipped on the host, runs on the joining machine. Another
+  player's light is not shown on the other machines yet.
+
 ### 2026-11-02 - owner's local test: crouch confirmed; flashlight; log flood; failed starts
 - Owner confirmed the joining player's crouch now shows on the host.
 - Flashlight (T): the key is part of the relayed input (bytes 0xFB.. block: 0x103/0x104 change on the host copy's
