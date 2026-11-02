@@ -104,6 +104,22 @@ Newest first. One entry per discovery; link the NOTES section for details.
   against real hits yet (no live zombie near the players in this save at the time).
 - Dead zombies sinking into the ground on the joining machine: not investigated yet (needs a kill).
 
+### 2026-11-02 - joining player's sprint: not fixed yet (the tick-order change is reverted)
+- Correction to the entry below: moving the joining machine's state-machine passes after CPlayer::Update made the
+  porch work but the joining player then fell mid-sprint on flat ground. Measured on the host (`order_probe.py`,
+  frame-stamped hooks): its state-machine manager (world update 0x145E23E -> 0x1636A40) runs before
+  CPlayer::Update in every frame (240/240), i.e. the original placement already matched; reverted.
+- With either order the joining player's sprint is cut by spurious falls (about 2 in 5 sprints on the base's
+  parking lot; `sprint_check.py`): Sprint.RunForward -> Environmental.Fall.FromRunning -> Land.Running while it
+  steps up a small rise (height 229.375 -> 229.54), never with the host's own player on the same path (4/4 clean).
+  The host runs four UL systems in its world update right before the state machines (0x1613D10, 0x1613530,
+  0x1435140, 0x1611B00); a joining machine runs none of them (the world update does not run there at all). Next:
+  find which one keeps the player's ground contact, or what the Fall transition reads (`fall_probe.py`).
+- Menu driver / agent: on a DLC left selected in the title carousel the "has a save" test looked at the DLC's
+  save, so Continue Story was missing and `menu_flow_test.py` started a new story (the game stopped at its
+  "overwrite your save?" prompt). The agent now selects the main game before building the Host Game menu, and
+  the menu driver picks Continue/New by name.
+
 ### 2026-11-02 - joining player's sprint at obstacles fixed; intermittent host start hang
 - Sprint "falling" loop: pressed against an obstacle (porch next to Door_4), the joining player's height jitters
   by ~0.1 m and its own state machine flipped Fall.FromRunning <-> Land.Running every few frames, while its host
