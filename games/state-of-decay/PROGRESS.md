@@ -97,6 +97,38 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - journal model, radio lock and quitting fixed
+- Journal (Tab) on a joining machine: the player raised its weapon instead of the journal book. Opening the
+  journal runs UL action SelectItem "Journal" (type 0x7A, fire handler 0x1703960; params = the item class name)
+  and closing it SelectItem "Fists" (the host's own player then gets his weapon back from his UL character).
+  `weapon_relay.guard_selects` drops UL's select actions for players with no UL character (else they lose their
+  weapon), so the journal was never selected. Now, for the machine's own player, "Journal" goes through, and the
+  next SelectItem after it selects the player's weapon again by name (0x13E7F20, actor thiscall (class, keep
+  history)) instead of the Fists. The client Lua weapon report skips "Journal".
+- The other machines showed the reading player idle: the journal states run only on the reading player's own
+  machine (the host's state machine leaves a journal state written into its copy at once). The selected item does
+  replicate, so `local/journal_sync.py` (a Lua timer on every machine, installed by `coop_setup`) plays the
+  journal clip `Item_journal_idle` on animation layer 1 of every other player holding the Journal and stops it when
+  the item changes. Verified both ways (`local/journal_test.py`: each player's item on both machines, the clip on
+  the other one, weapon back after closing; screenshots).
+- Radio Assistance on joining machines: it is locked by the story through UL value Game.RTS.NoRadio (0x4020018;
+  the open function 0x15FC580 returns at once while it is set). The host has it from the save, a joining game loads
+  none, so it was 0 there and the menu opened (also by itself). `local/rts_flags.py`: the host's agent sends the
+  story locks (NoRadio, NoOutposts, NoJournal Expertise/Home/Challenge/People) with its time of day, on join and
+  every 30 s, and the joining agent sets them (getter 0x13F4630, setter 0x13F4A10). Verified: before, the menu
+  opened on the joining machine; after joining, NoRadio/NoOutposts arrived and it stays closed.
+- Quitting: after a session, Exit Game in the main menu left the window "not responding". Two causes:
+  - joining machines: `prep_client.prep` (run by `coop_setup`) installed `Proc.trap_exits`, a diagnostic that
+    makes ExitProcess spin forever. Now opt-in (`exit_trap=True`); the game closes in about 1.4 s.
+  - the host: after hosting, its main thread stays in the engine's teardown after ISystem::Quit (keeps drawing
+    frames, never reaches ExitProcess); not found inside. The agent now watches the quit flag (CSystem +0x388)
+    and ends the process when it is still there 8 s after the player chose Exit (the player is back at the main
+    menu by then, nothing is lost). The agents and `hud_relay.py` now stop when their game ends.
+  Verified (`local/exit_test.py`, in-game Exit Game -> Yes -> main menu Exit Game): joining copy closed after
+  1.4 s, host after 8.4 s, no agent or relay left running.
+- Tools: `tab_probe.py` (a player's state names on every machine during a key press), `action_probe.py` with
+  target `*` (all records), `radio_test.py`, `park_zombies.py`, `thread_eips.py` (busy threads and their EIPs).
+
 ### 2026-11-02 - rejoin suite rerun: rejoining works, searching on the host does not start
 - `rejoin_suite.sh` (fresh 4-player New Story, `COOP_HOUR=12`): Ed left and came back with his agent run from
   the second-PC bundle and got his old slot and character back (ed_jones.cdf), and the host's time right after
