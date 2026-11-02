@@ -96,6 +96,17 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - sprint "falling" loop narrowed down; radio menu on the joining machine
+- The joining player's sprint loop (Fall.FromRunning <-> Land.Running without falling, owner: "after a door")
+  is tied to a spot, not to doors: at a porch next to Door_4 (~3173,3358, z 226.2) it loops before and after the
+  door is opened and also with every door's collision removed on the joining machine; the host's own player
+  sprinting from the same spot and facing does not loop. On flat ground the joining player sprints normally
+  (22 m in 3 s, three runs). So the joining machine's ground check / physics differs from the host's at such
+  spots; open.
+- The Radio Assistance menu was found open twice on the joining machine (its input blocked: the player could not
+  move) without anyone opening it there; not reproduced with the host's R, Q, Tab, T or F, nor with Alt/Shift on
+  the joining machine. Open.
+
 ### 2026-11-02 - flashlight: each player's T switches only its own light
 - UL_Flashlight's compiled script (string constants via string.dump): OnInit calls self:OnReset(), which places a
   projector light (LoadLight, flashlight1.tif) by g_localActor, sets the blackboard "Game.Player.LightOn" and plays
