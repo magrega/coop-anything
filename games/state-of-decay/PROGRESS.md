@@ -107,6 +107,7 @@ Newest first. One entry per discovery; link the NOTES section for details.
   the entity's nearest player is this machine's own. Verified on one PC: host T -> host's entity runs on the host,
   skipped on the joining machine; joining player's T -> skipped on the host, runs on the joining machine. Another
   player's light is not shown on the other machines yet.
+- Owner checked it in the running session: each player's T toggles only its own light, a second press turns it off.
 
 ### 2026-11-02 - owner's local test: crouch confirmed; flashlight; log flood; failed starts
 - Owner confirmed the joining player's crouch now shows on the host.
