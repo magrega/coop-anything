@@ -96,6 +96,19 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - joining player's sprint falls (open), notes
+- In a fresh session 4 of 6 sprints on the base's parking lot were cut by Environmental.Fall.* -> Land (the
+  host's own player: 0 of 8). Not a condition flag: comparing the flags ([0x1F36D60 + id], snapshot after pass 1
+  each frame via `cond_probe.py`) in the frames right before 9 falls with ~3000 steady-sprint frames showed no flag
+  that differs (`fall_cond.py`), so the fall comes another way (an event?). The engine's own in-air timer stays 0
+  at the fall (player+0xBD4) and the height does not drop. Open.
+- In one long session (after many probes) the joining player's machine-driven states stopped ending
+  (Sprint.Stop.Normal, Land.Normal held for minutes while the host copy was idle; the record was ticked but did
+  not change). Requesting idle via pending state +0xE / flag +0x18 got it out once. Not seen after a restart.
+- Tools: `sprint_check.py` (walk vs sprint distance and states), `cond_probe.py`, `fall_cond.py`,
+  `sprint_door_cond.py`, `order_probe.py` (frame order of two functions), `action_probe.py` (action begin/end
+  counts per player; named types only).
+
 ### 2026-11-02 - daytime for testing: not found yet
 - `e_TimeOfDay` set from the console does not stick (UL's clock overwrites it); the host and a joining machine
   showed different times (18:09 vs 21:20), so the time of day is not synced either.
