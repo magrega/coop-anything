@@ -96,6 +96,15 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - daytime for testing: not found yet
+- `e_TimeOfDay` set from the console does not stick (UL's clock overwrites it); the host and a joining machine
+  showed different times (18:09 vs 21:20), so the time of day is not synced either.
+- `rts_tod <value>` is UL's "Set time of day" command: "0.5", "720", "1200" are taken as e_TimeOfDay as given
+  (720 stayed, but the scene stayed night), "12", "12.0", "12:00", "12 0" left it at 5.9e-39; unit and range
+  unknown. A float at 0x1DE1B60 that crept up ~0.0024/s (6.27 = 6:16?) was not the clock (writing 12.0 there
+  changed nothing visible). Open; the host's clock in that session may be off after these tries (test save only).
+- The Radio Assistance menu was open on the joining machine again (twice during these tests), still unexplained.
+
 ### 2026-11-02 - sprint after doors fixed
 - Owner confirmed: sprint works after opening a door (locked door / break-in not tried yet).
 - Cause: on the joining machine `door_sync`'s stub mirrors the players' door states from the host by writing the
