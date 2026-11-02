@@ -37,6 +37,7 @@ runtime by Python scripts under the gitignored `local/` folder; no game file is 
 | Leaving and coming back | Works (2026-10-29): a player who left frees its slots everywhere; one who comes back (or the next one) takes the free slots and the departed player's character (Ed stays Ed) |
 | Separate PCs | Works (2026-10-29): a second PC on the LAN joined through Co-op Play > Join Game as Ed; its moves arrive on the host. Files for it: `local/make_coop_bundle.py` (scripts + README), `coop_firewall.ps1` on the host PC, `coop_hosts.txt` when broadcasts don't get through; a VPN on either PC must leave the LAN out |
 | Session stability | Asserts and missing-entity updates no longer kill the host (`crash_guards.py`); 25-minute play soak 19/19 cycles without a crash |
+| Time of day | Works (2026-11-02): the host's clock runs (it stood still at midnight as a server), joining players follow the host's time, `COOP_HOUR=12` or `tod_sync.py host 12` for daytime (`tod_sync.py`) |
 | Vehicles | Untested in co-op: the only vehicle at the story start is locked for both players |
 | Missions, community, journal data for the joining player | Not started (she now has a community record on the host; nothing mirrored to her machine) |
 
@@ -95,6 +96,26 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 ## Findings log
 
 Newest first. One entry per discovery; link the NOTES section for details.
+
+### 2026-11-02 - time of day: the host's clock runs again, players follow it, daytime on request
+- Why it was always night on the host: as a listen server the host runs CryAction's server time-of-day rule
+  (0x6E9FD0) every frame. With `sv_timeofdayenable 0` (the default) it still calls the engine's
+  `ITimeOfDay::SetAdvancedInfo` (vtable +0x24, 0x4AA3F0), but with start/end taken from uninitialised stack and
+  speed 0. The clock (time-of-day object +0x24; start/end/speed at +0x2C/+0x30/+0x34) was then clamped to a junk
+  start (5.9e-39, i.e. midnight) every frame, whatever the save said. The single-player game never runs as a
+  server, so this only shows in co-op. It also explains the earlier failed tries (`e_TimeOfDay`, `rts_tod`).
+- Fix (`local/tod_sync.py`, called by `coop_agent.py` before the host loads): `sv_timeofdaylength 1.9608` and
+  `sv_timeofdayenable 1`. The rule then passes start 0, end 24 and speed (1/150)/length = 0.0034 h/s, the game's
+  own speed (a game day takes 1.96 real hours). It does not set the time itself, so the save's time is kept
+  (verified: a save written at 12:14 loaded at 12:14).
+- A joining player's game loads no save, so its clock started at midnight and ran on its own. The host's agent
+  now sends its time over the agents' control channel when a player joins and every 30 s; the player's agent
+  sets it when it is more than 3 game minutes off (`tod_sync.follow`). Verified: host 18.61 / Ed 18.61 and
+  back to 12.11 / 12.11 within one interval after a change on the host.
+- Setting the time: `ITimeOfDay::SetTime(float hour, bool force)` (vtable +0x14) through
+  `tod_sync.set_hour`. Daytime for tests: `COOP_HOUR=12 local/play_menu.sh` (or `coop_agent.py --hour 12`),
+  or during a session `python local/tod_sync.py host 12`. Verified on both screens (full daylight, shadows).
+- Avoid `rts_tod`: its argument parsing writes a garbage time.
 
 ### 2026-11-02 - joining player's sprint falls (open), notes
 - In a fresh session 4 of 6 sprints on the base's parking lot were cut by Environmental.Fall.* -> Land (the
