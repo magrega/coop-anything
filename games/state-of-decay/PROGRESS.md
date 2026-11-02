@@ -110,6 +110,13 @@ Newest first. One entry per discovery; link the NOTES section for details.
   spawned (20 at the base after a few presses) and does not follow the player, so the light on the character
   itself is something else switched along with it. UL_Flashlight's Lua class has only OnInit/OnReset/
   OnPropertyChange (compiled). Asked the owner to describe what T does on each screen in the running session.
+  Owner's answer: the host's T toggles its light (follows it) and also the joining player's; the joining
+  player's own T toggles its own light. Each T spawns one UL_Flashlight on the host, replicated to every machine
+  (+1 on both); nothing runs in the joining machine's copy of the host's state machine meanwhile
+  (`local/action_probe.py`), and a Lua wrapper on UL_Flashlight.OnInit is never called, so the light is switched
+  natively when the entity appears, for that machine's own player. Fix needs that native code (type names are
+  stripped). A first version of action_probe.py crashed the joining test copy (its stub overwrote eax, which some
+  handlers take as an argument); fixed to keep every register.
 - Joining machines' logs grew by ~40 MB per 15 min: "Entity %u is not part of the community" every frame (also on
   the host). `crash_guards.quiet_community_warning` NOPs the three CryWarning calls (0x17167AD, 0x171685B,
   0x17168EB); installed at boot. Verified: client log growth 0 B in 3 s afterwards.
