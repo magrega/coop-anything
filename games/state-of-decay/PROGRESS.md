@@ -105,6 +105,11 @@ Newest first. One entry per discovery; link the NOTES section for details.
   per machine?). On the joining machine its own T cannot spawn anything (the host spawns entities), so it gets no
   light; the host's light is replicated and shown at the host's player (near the joining player it looks like
   its own). Open: give each player its own light.
+  More: the spawn goes through ThrowEntity's helper 0x1707160 and gets a physics impulse after it (0x1465868..),
+  i.e. a UL_Flashlight entity is thrown/placed at the player; each T press adds one more that stays where it was
+  spawned (20 at the base after a few presses) and does not follow the player, so the light on the character
+  itself is something else switched along with it. UL_Flashlight's Lua class has only OnInit/OnReset/
+  OnPropertyChange (compiled). Asked the owner to describe what T does on each screen in the running session.
 - Joining machines' logs grew by ~40 MB per 15 min: "Entity %u is not part of the community" every frame (also on
   the host). `crash_guards.quiet_community_warning` NOPs the three CryWarning calls (0x17167AD, 0x171685B,
   0x17168EB); installed at boot. Verified: client log growth 0 B in 3 s afterwards.
