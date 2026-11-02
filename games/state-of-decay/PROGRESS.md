@@ -105,6 +105,17 @@ Newest first. One entry per discovery; link the NOTES section for details.
 - Dead zombies sinking into the ground on the joining machine: not investigated yet (needs a kill).
 
 ### 2026-11-02 - joining player's sprint: not fixed yet (the tick-order change is reverted)
+- Owner: Ed's sprint works until he opens any door, then never again. Reproduced on one PC: after door use
+  (and fights) the joining player never enters Sprint.RunForward; pressing Shift while already running stays
+  GraphDriven.Observer (8 m in 2 s, plain run). In a fresh session it sprints (15-16 m in 2.5 s).
+- Not the cause: the joining machine's game clock 0x1EE7F44 (0 there; kept running by hand, no change), a model
+  swap (SetActorModel on the host's player: still 8/8 clean), the combat tags (removed: still no sprint), the
+  actor's stamina (actor+0x1678 is 100 on both machines). The HUD's stamina arc on the joining machine is almost
+  empty while the host's record for that player shows 110; the joining machine has no "current player record"
+  ([0x1EE2638] = 0), so whatever its sprint test and HUD read is not kept up there. Transition mechanics found:
+  conditions are flags in [0x1F36D60 + id] (0x16FF340), chosen by 0x1711450, applied by 0x1633DB0 -> 0x1633B20.
+- Also seen: the Radio Assistance menu opening by itself on the joining machine (blocks its input); a crash of the
+  host test copy from SetActorModel with an empty model path (my test).
 - Correction to the entry below: moving the joining machine's state-machine passes after CPlayer::Update made the
   porch work but the joining player then fell mid-sprint on flat ground. Measured on the host (`order_probe.py`,
   frame-stamped hooks): its state-machine manager (world update 0x145E23E -> 0x1636A40) runs before
