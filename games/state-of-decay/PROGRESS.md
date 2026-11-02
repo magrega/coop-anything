@@ -97,6 +97,7 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 Newest first. One entry per discovery; link the NOTES section for details.
 
 ### 2026-11-02 - sprint after doors fixed
+- Owner confirmed: sprint works after opening a door (locked door / break-in not tried yet).
 - Cause: on the joining machine `door_sync`'s stub mirrors the players' door states from the host by writing the
   state index (entry/exit actions skipped). Going back to idle that way never ended the door state's modes: during
   one door use the joining player's state machine began ContextTagMode x2, StateMachineAnimationMode and
