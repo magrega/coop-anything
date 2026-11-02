@@ -96,6 +96,21 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-02 - joining player's sprint at obstacles fixed; intermittent host start hang
+- Sprint "falling" loop: pressed against an obstacle (porch next to Door_4), the joining player's height jitters
+  by ~0.1 m and its own state machine flipped Fall.FromRunning <-> Land.Running every few frames, while its host
+  copy and the host's own player at the same spot did not. On a joining machine `player_sm` ticks the player's
+  state machine itself (the game only does it in the host's world tick), and it ran the three passes at the start
+  of CPlayer::Update, i.e. on the previous frame's movement state. The passes now run after CPlayer::Update
+  returns (the detour swaps the return address for a post-update block; input is still sent before). Verified on
+  one PC: 3/3 sprints at that porch go Observer -> Sprint.RunForward (stopped by the obstacle like the host's
+  player); crouch, door open and melee swings still match on both machines.
+- Host start hung three times today and twice on 10-29 right after `sv_bind`, before "connection requested ...
+  <local>:64087" and before the game port was bound; the main thread sat in a poll + Sleep(1) loop (0x1222C28).
+  Not the save (a save that loaded on 10-29 hung too, the next start with it worked), not the VPN (owner: on all
+  along), not the co-op code (nothing of it runs that early besides the boot guards). Intermittent; kept the hung
+  saves (test-saves/host/*.stuck-*). Open.
+
 ### 2026-11-02 - sprint "falling" loop narrowed down; radio menu on the joining machine
 - The joining player's sprint loop (Fall.FromRunning <-> Land.Running without falling, owner: "after a door")
   is tied to a spot, not to doors: at a porch next to Door_4 (~3173,3358, z 226.2) it loops before and after the
