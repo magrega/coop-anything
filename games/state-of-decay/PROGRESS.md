@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - instant local hits: the joining player's swings land on its own screen at once
+Owner: for the joining player, attacks come late.
+- Its machine plays its own swing locally (clip logs on both machines: own swing clip 0.06-0.27 s after the click,
+  the host copy's at the same time or later), but the hit is decided on the host, and the zombie's reaction came
+  back with the zombie list: 0.8 s and more after the click on the joining screen, against about 0.5 s on the host.
+  Its own state machine finds no targets (CombatDamage never fires there: its zombies are not in the combat
+  system), so there is no local hit to hook.
+- `hit_predict.py` (joining agent): zombie_sync's passive clip hooks also run on the joining machine; when its own
+  player starts an attack swing, 0.30 s later the zombie handler's coopPredictHit picks the nearest live shown
+  zombie within 2 m in front, starts a light reaction on it and marks it; the effects runner plays a flesh splat
+  there (a copy of the host's zedflesh_splat block) and drops the host's own splat for that hit. For 0.7 s the
+  zombie handler starts none of the host's clips on that zombie but knock-downs, deaths, grabs and finishers (the
+  host's own reaction, or the walk it had started before the hit reached it, cut the shown reaction short).
+- Verified (one zombie at a time, others parked): reactions on the joining screen 0.42-0.46 s after the click (host
+  0.5-0.6 s), on the zombie in front, played out; then the host's clips again. No errors, no dumps.
+- A swing that misses on the host still shows a short reaction there.
+
 ### 2026-11-03 - effects relay: blood, impacts and head explosions on the joining screens
 Owner: on the joining machine blood splashes sometimes do not happen and heads do not explode on the final blow.
 - Only the host runs the zombies' state machines and the combat code, so their effects existed on its screen only.
