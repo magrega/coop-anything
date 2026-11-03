@@ -97,6 +97,21 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - puppet zombies: collapsed corpses revived in place (no reload, no blink)
+- The joining machine's corpse fix reloaded the character when the local death ragdoll collapsed, and its parts
+  then went back on behind a 0.25 s hide: a blink per kill. The ragdoll comes from native code (wrapping the
+  zombie classes' script TurnRagdoll / RagDollize / OnDeath / Kill and the actor binding's RagDollize: none called;
+  g_hitDeathReactions_disableRagdoll 1: still collapsed); physics profiles ("alive", "unragdoll", "animated",
+  "frozen", "none", "sleep") left the bones collapsed.
+- The actor binding's Revive ends the ragdoll: the skeleton is animated again, health stays 0, all five parts
+  stay bound. The corpse check now calls Revive and holds the down idle's first frame (lying face down); the reload
+  is kept as a fallback when the corpse is still collapsed a second later. Verified on a collapsed corpse (head
+  2 cm from its origin): revived, head 0.65 m out, lying, parts Legs/Skin/body/hair/head, no reload.
+- Exact identity (host zombie = this zombie, without position matching): the network's entity-to-net-id table
+  (CNetContext::m_mNetIDs) has no code reference in this build (its logging is compiled out); matching stays by
+  position with stickiness (0-2 model reloads in 30 s, from recycled entities). SinglePlayer.coopNoSettle = true
+  pauses the corpse check (tests).
+
 ### 2026-11-03 - puppet zombies: host-driven gait sooner, glides instead of jumps
 Owner's plan, step 3: the joining machine's zombies as pure puppets of the host's. What they already are: network
 entities whose positions the engine keeps 0.2-0.25 s behind the host (mean error 0.06-0.26 m in
