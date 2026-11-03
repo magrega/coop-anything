@@ -97,6 +97,24 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - nobody could search containers since 10-29: a broken crash guard
+Owner: in a tent the host sees a highlighted suitcase, the joining player does not; neither gets a prompt, E does
+nothing.
+- The search candidate check (0x14569A0, from the interaction finder 0x1464000) never ran: the player record's
+  search slot ([rec+0x204 + slot*0x6C]+0x28, slot byte rec+0x1528, active bit 0 of rec+0x11A0+slot) stayed empty on
+  both machines, because the query action RTSResourceNodeQueryMode (type 0x72, fire handler 0x170B340) returned
+  nothing for any player.
+- Cause: `crash_guards.rts_query_guard` (2026-10-29) wrote "xor eax,eax; pop edi; pop esi; ret" over 0x170B3A5..AA,
+  but the handler's found path jumps to 0x170B3A7, into those bytes: every found record returned without writing
+  its result. (The 10-29 entry already noted that no player, the host included, got a search context at the known
+  containers any more.)
+- Fix: the original bytes stay; the lookup's checks at 0x170B38A jump to a page that returns on a failed lookup and
+  goes on to 0x170B3A7 otherwise. rts_query_guard also undoes the broken version in a running game.
+- Verified live: the joining player at container 0x5BD: Search.Logic.ContextTest -> Ground.Start -> Loop, the
+  manager completes after 7 s, Stop, back to Observer.
+- Ruled out on the way (reverted and retested, no change): the two query guards, the purge-loop guard, last_stand,
+  the effects relay hooks; the query pool had 497/505 of 512 free.
+
 ### 2026-11-03 - being grabbed by a zombie shows on the joining screen; another null-query crash guarded
 Owner: the client crashed; when a zombie grabs the joining player, its model moves around uncontrollably.
 - Crash (joining game, dump 21:11:30): access violation at 0x1522FE4 in the entity-db query result reader
