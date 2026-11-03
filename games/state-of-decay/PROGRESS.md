@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - a downed joining player reacts to hits on its own screen; dressing no longer races the renderer
+- Owner: when the joining player is down and zombies hit him, he lies still on his own screen. His host copy plays
+  Reaction.Stunned.Basic.Down.Hit.Front/Left/Right/Back every 0.3-0.6 s (clips React_stunned_hit_*), his own
+  machine stayed in Down.Core.Idle. `door_sync.PeerStates` now mirrors the whole "Reaction.Stunned.Basic.Down."
+  family to the player's own machine with its clips (as for door and Reaction.Core states); the down idle is
+  mirrored too, else the return from a hit would be sent as "idle" and stand him up there. Getting up
+  (Reaction.Stunned.ToStand) still runs on his own machine from his input. Verified (`local/down_hits_test.py`):
+  20 s down, 28 Down.Hit on the host copy, 26 on his machine; screenshot: recoiling on the ground; after mashing
+  Space both copies are up and stay up.
+- Owner: the joining game crashed after a few Win+Tab. Dump (client-install/USER): access violation reading
+  [0+8] at 0xB55085 (attachment code) in the render thread: the zombie dressing (zombie_dress.py) removed and
+  added attachments of zombies that were being drawn. Now a zombie is hidden while it waits for its parts (the
+  handler hides it when it loads the bare skeleton; the dressing loop hides any zombie whose parts are missing)
+  and its attachments change only after it has been hidden for 0.25 s; then it is shown (after 2 s it is shown
+  anyway). Verified: new zombies dressed while the joining window was minimized and restored 20 times: no new
+  dump, both games responding, 9/9 visible zombies dressed like the host.
+
 ### 2026-11-03 - zombies on the joining machine: no more "teleports", they fight a downed player, hits show sooner
 Owner's report: zombies lag and teleport now and then; a downed joining player is not hit, zombies just stagger
 around; hitting zombies shows a visible latency.
