@@ -97,6 +97,36 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - finishers line up on the joining machine; by-id zombie clips relayed; corpses keep their pose
+Owner: Z finishers work but the player's and the zombie's animations play apart; killed zombies' bodies deform.
+- Clips started by id were never relayed: CSkeletonAnim::StartAnimationById (0xAEFF10, thiscall (id, params);
+  StartAnimation by name is vtable +0x24, by id +0x28 of the skeleton = character instance +0x108) starts the
+  finisher (player Grab_finisher_golfswing, zombie Grab_finisher_golfswing_slot2...) and most zombie clips (wander,
+  creep, idle, Environmental_window_* climbs). Our clip hook only saw the UL by-name helper 0x820BC0.
+  `zombie_sync.install_byid` hooks it too (layer-0 starts into a second ring); `State.read_events` maps skeleton to
+  entity and id to name (animation set [[skeleton+0x3BC]+0x90]+0x108, vtable +0x18 GetNameByAnimID; cached) and
+  merges them with the by-name clips. Only hits, grabs, finishers, downs, deaths, climbs and strikes trigger an
+  immediate list (`IMPORTANT`), wander/idle clips go with the regular 0.5 s list.
+- Finisher alignment: the host lines the player up with the downed zombie; the joining machine kept its own spot
+  and its zombie copy, lying, got no position updates (2.8 m off). Now: player states (door_sync.PeerStates) also go
+  out from the relay's fast thread (every 30 ms; the clip went with the round, up to ~0.3 s after the zombie's), a
+  grab clip carries the host copy's position and facing (entity rotation quaternion +0x30) and the player's machine
+  takes it; the zombie list carries each zombie's facing, and a matched zombie more than 1.5 m off, or one starting
+  a paired grab clip, is put at the host's place. Measured: the player's machine enters the finisher 0.1 s after the
+  host and stays in it for its length, the player 0.1-0.2 m from its host copy, the zombie copy 0.0 m from the host
+  one; screenshot: the golf-swing finisher on the joining screen.
+- Corpse poses: Lua StartAnimation cannot ask for "repeat last key" (the host's one-shots use flags 0x4084), so a
+  corpse's last one-shot clip ended and its skeleton collapsed into a ~0.5 m ball (some floating). The zombie
+  handler now holds a corpse's last clip at its end (SetAnimationSpeed 0 just before it ends; restarted at 0.98 if
+  it already ended). Verified: a finisher kill's corpse stays lying (0.84 x 1.50 m, top 0.56 m above ground) for
+  3.5 s and on.
+- Crash guard: the joining game once died in a UL purge loop (0x146A662) that walked a stale blackboard whose list
+  count (+0x1300) was a smeared 0x028F8D8B, while the player was down and being hit. `crash_guards.
+  blackboard_list_guard` (at boot) treats a count above 64 as an empty list.
+- Checks after these changes (`engage_test.py`, `slide_watch.py` 120 s): no staggers, zombies strike the player
+  standing and down, no client zombie more than 0.7 m from its host one, no new dumps.
+- Not done: the approach walk before the finisher does not show on the joining machine (only the finisher).
+
 ### 2026-11-03 - corpses stay on the joining machine, Z finishers show there; hit timing re-measured
 Owner: a zombie hit by the joining player may slide backwards endlessly; downed zombies fall through the ground;
 the joining player can't finish a downed zombie with Z.
