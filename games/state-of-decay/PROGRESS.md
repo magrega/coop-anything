@@ -97,6 +97,24 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - puppet zombies: host-driven gait sooner, glides instead of jumps
+Owner's plan, step 3: the joining machine's zombies as pure puppets of the host's. What they already are: network
+entities whose positions the engine keeps 0.2-0.25 s behind the host (mean error 0.06-0.26 m in
+`zombie_lag.py`), no state machine of their own (records inactive), clips, outfit, corpse pose and effects from the
+host, sticky matching (2 reloads in 30 s, from the game recycling entities), corpses settled when the local ragdoll
+collapses, and no last stand for the joining player. Changed now:
+- Gait: only "important" clips (hits, grabs, deaths, climbs, strikes) went out at once; walk/run/idle changes
+  waited for the regular list (up to 0.5 s of the wrong gait). zombie_sync counts every clip (State.any) and
+  hud_relay's fast path sends a list within 0.15 s of any new clip (ZOMBIES_ANY_S), important ones within 0.05 s.
+- Corrections: a matched zombie more than 1.5 m from its host zombie was put there in one jump; it now glides
+  there in 5 steps of 50 ms (a paired grab or finisher start still takes the exact place at once). 2 glides in
+  20 s near the joining player.
+- Checked: `engage_test.py` PASS (standing: 14 strikes and bites, 0 staggers; down: 132 strikes, 65 Down.Hit
+  reactions), 6 swings with prediction, no errors, no dumps.
+- Not changed: matching stays by position (the entity ids are allocated per machine; no network-id mapping
+  found yet), and the corpse fix still reloads the character (a 0.25 s blink while its parts go back on), since
+  the death ragdoll's trigger sits in packed game scripts that could not be read.
+
 ### 2026-11-03 - instant local hits: the joining player's swings land on its own screen at once
 Owner: for the joining player, attacks come late.
 - Its machine plays its own swing locally (clip logs on both machines: own swing clip 0.06-0.27 s after the click,
