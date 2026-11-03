@@ -97,6 +97,42 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - zombies on the joining machine: no more "teleports", they fight a downed player, hits show sooner
+Owner's report: zombies lag and teleport now and then; a downed joining player is not hit, zombies just stagger
+around; hitting zombies shows a visible latency.
+- Positions are fine: the engine's own entity sync keeps a moving client zombie 0.1-0.25 s behind the host one
+  with a few cm of error after that shift (`local/zombie_track.py`, `zombie_lag.py`); 50+ m jumps happen on the
+  host too (the game relocates zombies).
+- "Teleports": the joining machine's zombie handler re-matched every client zombie to the nearest host entry on
+  every list, so zombies in a crowd swapped identities: 283 model reloads in 180 s around the joining player
+  (each a bind-pose flash and a restarted animation) plus 20 hides/shows (`local/zombie_pops.py`). Now a client
+  zombie keeps the host zombie it had ("@key" models are unique) while that one is within 6 m, the others match
+  the nearest within 4 m: 0 reloads in 60-180 s. The game also recycles zombie entities (same id, new outfit): the
+  host reads each dress again every 5 s and the dress key carries a checksum, and the joining machine removes an
+  attachment of the same name before attaching the new part (vtable +0x14 RemoveAttachmentByName of the
+  attachment manager); its dressing is one native call per zombie (separate calls per part let a reloaded model
+  free the character in between: "Pure function call" crash in the attachment code).
+- Staggering: `zombie_targets` added a "Hero" contact event to every zombie within 1.4 m of the joining player on
+  every frame (in the game a contact is one event per touch); those zombies looped Reaction.Logic.BasicReaction.
+  Contact events are off now (`zombie_targets.CONTACT = 0`); the strike damage part stays. Fresh sessions, host's
+  player 20 m away (`local/engage_test.py`): with contacts 5 staggers / 5 strikes in 30 s, health 100 -> 92, not
+  knocked down in 40 s; without: 0 staggers, 10-11 strikes and bites, 100 -> 27, down at once, then 29-84 strikes
+  at the downed player and 37-60 Down.Hit reactions in 30 s (before: zombies around a downed joining player
+  howled and walked in place). Zombies blocked by the base's walls also "walk in place" (not a co-op issue).
+- Hit latency: the joining player's swing starts on its host copy 50-100 ms after the click. The zombie list then
+  reached the joining machine's handler after 66 ms median / 277 ms 90th percentile / 618 ms max
+  (`local/relay_latency.py`, via a "#n" message number and the joining machine's cvar coop_zseq), and the relay's
+  fast path only ran between rounds (80 ms average, up to ~0.35 s). Now: packet rates 60 on both ends
+  (`coop_setup.net_rates`: sv_packetRate, cl_packetRate, net_packetsendrate; before 30/30 and 20/10), the zombie
+  fast path in its own thread (checks every 10 ms, sends within 0.05 s of a new clip, ~12 ms per send; a lock
+  around the zombie clip log, mailbox calls stay serialized by sodlib): 43-50 ms median / ~125-130 ms 90th
+  percentile. One measured hit: host reaction -> joining screen 0.53 s before, 0.36 s with the rates only (before
+  the thread). A 3-minute fight with the thread: no crash, no fast-path errors.
+- Not done: playing the hit reaction on the joining machine before the host confirms the hit (prediction).
+  Tools: `zombie_track.py`, `zombie_lag.py`, `zombie_pops.py`, `down_watch.py`, `down_test.py`, `engage_test.py`,
+  `relay_latency.py` (needs the relay started with COOP_RELAY_TIMING=1), `hit_latency.py` (aiming the joining
+  player's camera at a zombie is unreliable in it).
+
 ### 2026-11-03 - zombies on joining machines wear the host's detailed parts (no more low-detail bodies)
 - Before: each zombie on a joining machine got one whole low-detail body per gender (`hud_relay.ZOMBIE_BODIES`,
   `.../low/low.cdf`). The host builds every zombie from the bare zombie skeleton plus five skin attachments chosen
