@@ -97,6 +97,32 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - corpses stay on the joining machine, Z finishers show there; hit timing re-measured
+Owner: a zombie hit by the joining player may slide backwards endlessly; downed zombies fall through the ground;
+the joining player can't finish a downed zombie with Z.
+- Corpses: a zombie's UL record goes inactive at death, so the host relay stopped listing it and the joining
+  machine hid it two lists later; on the host it lies there (most corpses also leave the record pool, so the host
+  cannot list them by record). Health is synced, so the joining machine's zombie handler now treats a zombie with
+  health below 1 as a corpse: shown where the network puts it, in the pose of its last clip
+  (ZombieReact_DownFace...), and out of the matching. Verified in a session with 7 corpses: all shown on both
+  machines, world boxes 0.4-0.6 m high at ground level (host the same), one half-lying (1.4 m).
+- Sliding: not reproduced (a physics push moves a client zombie 0.4 m and it stops; 60 s fights with the joining
+  player swinging: no client zombie more than 0.7 m from a host zombie). Likely cause, now gone: dead client
+  zombies stayed in the matching and could take a live host zombie's entry, i.e. a lying body playing a run loop.
+- Z finisher: on the host it works for the joining player (its host copy runs Grab.BluntLight.Ground.GolfSwing.
+  Approach -> Finisher.FaceFromHead, the zombie ReactionGrab.ByHero and dies; `local/finisher_test.py` puts a
+  zombie into Reaction.Down.Front.Idle.Normal and presses Z), but its own machine showed nothing and kept its
+  position, so the approach was undone and the finisher sometimes aborted. `door_sync.PeerStates` now mirrors the
+  player's "MachineDriven.Grab." states and clips to its own machine as well: 2/2 finishers, its machine plays
+  Grab...Finisher.FaceFromHead with the host.
+- Hit timing, corrected: `hit_latency.py` read the joining machine's clock before focusing its window, which
+  added 0.3 s or more to every "joining screen" figure (the 0.36 / 0.53 s in the entry below). With the clock read
+  right before the click: its host copy starts the swing 0.05-0.1 s after the click, the zombie reacts on the host
+  0.4-0.5 s after the click (the swing reaching it), and on the joining screen ~0.07 s after that.
+- The host's start time (COOP_HOUR) did not always hold: right after the load the save's time was applied after
+  ours (read back 16.94 instead of 12, so tests ran into the evening). The agent now sets it again until it holds.
+- Seen, not fixed: a zombie climbing through a window on the host is ~1.3 m lower on the joining machine.
+
 ### 2026-11-03 - a downed joining player reacts to hits on its own screen; dressing no longer races the renderer
 - Owner: when the joining player is down and zombies hit him, he lies still on his own screen. His host copy plays
   Reaction.Stunned.Basic.Down.Hit.Front/Left/Right/Back every 0.3-0.6 s (clips React_stunned_hit_*), his own
