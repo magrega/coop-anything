@@ -97,6 +97,30 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - puppet zombies: exact pairing by name, corpses get bodies, corrections no longer fight the network
+- Identity: a zombie's network copy on the joining machine has the same entity NAME as its host zombie (the entity
+  ids are the same in one session and off by 1-2 in the next, so ids cannot be used). The host's zombie list now
+  carries each zombie's name (and id); the joining machine pairs by name first (the nearer by lagged place when the
+  game left two of a name), then falls back to position. Position matching had crossed two zombies 1 m apart and
+  kept them crossed. Each entry also carries where the host zombie was 0.22 s ago (host position history sampled
+  every 50 ms): that is where its network copy is now, and position fallbacks and corrections use it.
+- Corrections: the glide compared against the host's current place, and every running zombie (1.2-1.5 m behind)
+  was corrected about 30 times a second, fighting the engine's position updates (2 m errors in a crowd). Now it
+  measures against and glides to the lagged place: 8 glides in a whole session.
+- Verified in a crowd around the joining player (`twin_fit.py`: per zombie, the host zombie whose path it follows
+  best): all 4 paired with their best fit, 0.01-0.02 m, including two 0.9 m apart.
+- Corpses without a body: the game swaps a killed zombie for a new corpse entity (same index, new salt), which
+  reached the joining machine without a character, so the body vanished. The host now lists the nearest corpses
+  (25 m, up to 6) with loop "*"; a corpse entity the joining machine never dressed is matched to a corpse entry
+  (corpses only with corpses) and gets its body, parts and death clip. `corpse_bodies.py` after kills: 2 of 2
+  corpses with bodies, lying (pelvis to foot 0.67-0.69 m), a head-shot one without its head; 8 revived in place,
+  3 reloaded.
+- `engage_test.py` in a fresh session: PASS (11 strikes standing, 24 strikes and 31 Down.Hit reactions down,
+  0 staggers). It failed once after long test runs in one session (zombies used their downed-target strikes on the
+  standing player): test state, not reproduced fresh.
+- Both games crashed once at 0x11F9775, a second after Windows woke from Modern Standby (Kernel-Power 506 at
+  20:15, 507 at 20:38): test sessions now run with `keep_awake.py`.
+
 ### 2026-11-03 - puppet zombies: collapsed corpses revived in place (no reload, no blink)
 - The joining machine's corpse fix reloaded the character when the local death ragdoll collapsed, and its parts
   then went back on behind a 0.25 s hide: a blink per kill. The ragdoll comes from native code (wrapping the
