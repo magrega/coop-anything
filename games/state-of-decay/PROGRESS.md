@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - being grabbed by a zombie shows on the joining screen; another null-query crash guarded
+Owner: the client crashed; when a zombie grabs the joining player, its model moves around uncontrollably.
+- Crash (joining game, dump 21:11:30): access violation at 0x1522FE4 in the entity-db query result reader
+  (0x1522FE0, cdecl (out id, out flag, query); bit 2 of query+0xD8 = results ready) with a null query, called from
+  a UL script action (0x17317C1) on that machine. `crash_guards.query_read_guard` (both machines, at boot) sends a
+  null query down the function's own "not ready" path (outputs 0, returns 0).
+- Grabbed: the host copy goes into MachineDriven.ReactionGrab.ByBasicZombie (clips Grab_struggle_bite_back_start /
+  _loop); nothing of that family was mirrored, so the joining player's own machine kept its own control and played
+  a fall, a landing and an idle while the host pulled its position back (0.2-0.7 m apart). door_sync now mirrors
+  ReactionGrab.* like a finisher (state, clip, the host copy's place and facing), and re-sends the state every
+  0.15 s while the copy is held (its own state machine left a written grab state at once).
+- Verified with a staged grab (`grab_force.py`: host copy requested into ByBasicZombie): its own machine entered
+  it 0.17 s later, held it until the host copy left it and left 0.14 s after; the player did not move (0.00 m).
+  A natural grab did not happen again in more than 10 minutes of tests.
+- Test note: goal_check.stand_up (writes the idle state directly) leaves the joining player marked down for the
+  zombies (they use their TargetDown strikes on it standing, never grab it); fresh sessions do not have that.
+
 ### 2026-11-03 - puppet zombies: exact pairing by name, corpses get bodies, corrections no longer fight the network
 - Identity: a zombie's network copy on the joining machine has the same entity NAME as its host zombie (the entity
   ids are the same in one session and off by 1-2 in the next, so ids cannot be used). The host's zombie list now
