@@ -97,6 +97,35 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - finisher crash fixed; corpses no longer collapse on the joining machine; dress list read fixed
+Owner: zombies still deform on death, and the game crashed after a finisher.
+- Crash (joining game, dump 14:47:05): access violation at 0x1522EE7 in the entity-db query free (0x1522EB0,
+  UL\EntityDb\EntityDb.cpp; also the destructor of a UL script's query variables, thunk 0x17308E0), reached from a
+  state frame's teardown (0x17066A0 loop). The handle was garbage (0xBCCB5F44): the finisher mirrored onto the
+  joining player's state machine left an uninitialised query variable in a frame. `crash_guards.query_free_guard`
+  (at boot) ignores a handle that is not a slot of the pool (512 x 0x108 at 0x1EC00B8; free bitmap 0x1EE10C0).
+  The pool stayed healthy afterwards (host 442/512 free, client 505/512 after the tests).
+- Deformed bodies: the joining machine turns its zombie corpses into ragdolls, and the ragdoll of a skeleton
+  dressed from parts collapses: every bone falls onto the entity origin (head 2 cm from it, measured with
+  GetBonePos), so the body is a crumpled ball or invisible. Clips no longer move it (physics drives the skeleton).
+  Loading the character again makes it animated: the zombie handler checks each corpse at its clip's end and
+  then every second for 5 s; a collapsed one is reloaded (zombie_dress puts its parts back on) and held in the
+  first frame of ZombieReact_DownFace, lying face down. (SetAnimationTime 0.98 on a finisher clip left the body
+  crouching mid-fall, so the end frame is not used.)
+- Dressing silently failed: `zombie_dress._cvar_text` read the dress list with one 16000-byte read, and a read
+  that crosses the end of the string's heap region fails as a whole (here 4000 bytes failed, 2000 worked), so the
+  list read as empty and no zombie got (re)dressed. It now reads a page at a time up to the NUL.
+- Verified: finisher kill by the joining player, then on its machine the corpse lies flat, dressed (5 parts
+  bound), head 0.67 m from the origin; all shown corpses intact (2 ok, 0 collapsed; 7 reloads in the session);
+  no new dumps on either machine.
+- Owner's Steam stats file: `UserStats.cfg` in the Steam save folder was written at 09:00:54 today. Steam was not
+  running after the 08:55 boot; a test copy launched by the agent at 09:00:29 started it (Steam up at 09:00:34),
+  and the file was written on that boot. All later boots (Steam already running) left it alone, and the save
+  (`Class3.0.ulsave`, 2026-10-28 22:42:12) is untouched. The agent now refuses to start a test copy while Steam is
+  not running.
+- Still flaky in tests: the joining player's finisher approach often aborts (Combat.BaseLogic.Idle), 1 in 3 to 1
+  in 9 tries; the host's own finisher at the same spot works first time.
+
 ### 2026-11-03 - finishers line up on the joining machine; by-id zombie clips relayed; corpses keep their pose
 Owner: Z finishers work but the player's and the zombie's animations play apart; killed zombies' bodies deform.
 - Clips started by id were never relayed: CSkeletonAnim::StartAnimationById (0xAEFF10, thiscall (id, params);
