@@ -97,6 +97,26 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - effects relay: blood, impacts and head explosions on the joining screens
+Owner: on the joining machine blood splashes sometimes do not happen and heads do not explode on the final blow.
+- Only the host runs the zombies' state machines and the combat code, so their effects existed on its screen only.
+  In a 40 s fight the host ran CMaterialEffects::ExecuteEffect (0x6DA190, thiscall (uint16 id,
+  SMFXRunTimeEffectParams*)) 255 times (zombie claw hits c3fxlib_combat/zed_clawattack_body, zedflesh_splat, body
+  falls zed_bf_dirt_*), the joining machine 0-16 times. A finisher also runs the UL actions Dismember (core
+  0x138FAA0 (out, entity id, part mask, a, b); mask 4 = head: the head and Skin attachments come off) and
+  FxSpawnParticleEffect (fire handler 0x170A8C0 (context, params 0x7C, effect name inline at +0x19)).
+- The effect tables are identical on both machines (783 effects, same ids), and the parameter block (0xB8 bytes,
+  constructor 0x6D72F0) holds only values and pointers into the exe image, so a copy can be replayed.
+- `effects_relay.py`: host detours copy effects, dismemberments and particle actions into rings; a host-agent
+  thread sends what is new every 30 ms as an "fx" message on each joining player's control channel (no reply; the
+  channel's send now takes a lock). The joining agent maps entity ids (zombies: cvar coop_zmap "host id=own id",
+  written by the zombie handler from the dress keys; players by name) and runs each batch in one native call:
+  ExecuteEffect on its own effects manager, the dismember core, the particle handler with a stand-in context whose
+  record points at its own UL actor (0x1462350). Parts a dismemberment took off are kept off by zombie_dress
+  (CUT), which otherwise dresses whatever is missing.
+- Verified: 4 swings by the joining player: 130 effects, 5 dismemberments, 1 particle effect played on the
+  joining machine; a head-shot zombie there lost head and Skin exactly like its host zombie; no errors, no dumps.
+
 ### 2026-11-03 - joining player's camera no longer stays zoomed in after getting up
 Owner: after being downed and getting up, the joining player's camera stays zoomed in on the player; Tab or Shift
 zooms it back out, but it comes back.
