@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - joining player's camera no longer stays zoomed in after getting up
+Owner: after being downed and getting up, the joining player's camera stays zoomed in on the player; Tab or Shift
+zooms it back out, but it comes back.
+- The joining player's own state machine, 0.1 s after its mirrored Down.Core.Idle, found its own transition to
+  Reaction.BlazeOfGlory.Start.From_Stunned (last stand) true and went there, while its host copy stayed down.
+  Last stand's CameraMode action (handlers: begin 0x170CF90 pushes a camera mode on [0x1634090()]+0x28 and keeps
+  the handle in the action's data, end 0x1703B30 removes it) pushed a close camera (1.9 m, 45 degree view). The
+  mirrored states written over it skip exit actions, so the end never ran: the close camera stayed on the stack
+  for the rest of the session, under Tab's and Shift's own camera modes.
+- The writer was found with a write watch on the record's state words: 0x1711450 is the transition picker (the
+  first transition whose condition holds becomes the pending state +0xE, flag +0x18). `last_stand.py`
+  (coop_setup.client_main, joining machines only) drops a last-stand target (the BlazeOfGlory states, one
+  contiguous index range) for that machine's own player and reports no transition.
+- Verified in a fresh session, two down / get-up cycles: before 3.8 m and 45 degrees, down 5.9 m (the normal
+  downed view), 1.7 s after standing back at 3.8 m and 45 degrees; screenshots before and after match. Its own
+  machine stays in Stunned.Basic.Down.Core.Idle while down.
+
 ### 2026-11-03 - finisher crash fixed; corpses no longer collapse on the joining machine; dress list read fixed
 Owner: zombies still deform on death, and the game crashed after a finisher.
 - Crash (joining game, dump 14:47:05): access violation at 0x1522EE7 in the entity-db query free (0x1522EB0,
