@@ -97,6 +97,32 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-03 - zombies on joining machines wear the host's detailed parts (no more low-detail bodies)
+- Before: each zombie on a joining machine got one whole low-detail body per gender (`hud_relay.ZOMBIE_BODIES`,
+  `.../low/low.cdf`). The host builds every zombie from the bare zombie skeleton plus five skin attachments chosen
+  per zombie: body, head, hair, Skin, Legs (e.g. `body/tshirt/tshirt.chr`, `heads/head01/head01.chr`; "fresh"
+  zombies use human clothing parts).
+- Where the parts are (host): character instance (entity GET_CHARACTER 0xBC66F0) +0x60 is its attachment manager
+  (vtable +0x18 GetInterfaceByName, +0xC CreateAttachment), the attachment array at +0x68 (count at [array-4] &
+  0x7FFFFFFF); per attachment +0xA0 name, +0xB4 type (2 = skin), +0xA4 bound object, whose +4 is the skin's
+  character instance (file at +0xB8). The game dresses zombies with 0x1391600 (thiscall on the character
+  instance: name, .chr path, 1): CreateAttachment, load the skin through the character manager, bind it, own
+  material copy. Lua `CreateSkinAttachment(slot, name)` only creates an empty attachment (a path argument is
+  ignored).
+- Fix (`local/zombie_dress.py`): the host's zombie relay (`zombie_sync.relay_message`) reads each zombie's parts
+  and sends "=key:g:name~part+..." once per zombie and every 5 s (key = host entity id; part = path without
+  `characters/<gender>/zombie/` and `.chr`); the zombie's entry refers to it as "@key". The joining machine's zombie
+  handler (`zombie_sync.CLIENT_LUA`, now installed at runtime by the joining agent over the one in
+  `singleplayer.lua`) loads the bare skeleton on the matched zombie and lists its parts in a local cvar
+  `coop_zdress`; a loop in the joining player's agent (`zombie_dress.run_client`) calls 0x1391600 for each part of
+  each listed zombie whose bound parts differ. Special zombies not built from the skeleton keep their own model.
+- Pitfalls found: keys by entity id & 0xFFFF collided (the game reuses entity slots with a different high part), so
+  a new zombie overwrote an old dress; a reloaded character can sit at the old instance's address, so the client
+  loop checks the bound parts instead of remembering what it did.
+- Verified (`local/zombie_dress_test.py`, fresh session, zombies spawned near the players): every visible zombie on
+  the joining machine has the same skeleton and the same five part files as the host zombie it was dressed from
+  (3/3, again 20 s later); screenshot: a detailed, animated zombie attacking Ed.
+
 ### 2026-11-02 - journal model, radio lock and quitting fixed
 - Journal (Tab) on a joining machine: the player raised its weapon instead of the journal book. Opening the
   journal runs UL action SelectItem "Journal" (type 0x7A, fire handler 0x1703960; params = the item class name)
