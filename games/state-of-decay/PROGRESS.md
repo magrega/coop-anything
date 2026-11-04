@@ -97,6 +97,32 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - sprint snap-back and stop glide fixed: copies play their own clips, natively
+Owner: the glide is still there; while sprinting the joining player's model on the host lags a bit, goes back a bit
+and then moves forward.
+- The drawn body, not the entity: a Lua timer recording the pelvis bone in world space (pelvis_track.py) showed the
+  copy's body running up to 3.9 m ahead of its own entity at 12-16 m/s and jumping back ~2 m every 0.6 s, while
+  the entity moved smoothly; on the player's own screen the pelvis stays within 0.35 m. The cause was the clip
+  relay: _SPRINT_NW and the stop clip started on the copy with Lua StartAnimation keep their root motion in the
+  pose while the network moves the entity too; each loop restart snapped the body back. Clips are no longer
+  relayed (own_state_relay.RELAY_CLIPS): the copy's own sprint state plays _SPRINT_NW with its motion extracted.
+- The stop, natively: a requested Sprint.Stop.Normal played no clip on the copy (or Dodge_roll_normal). Two causes:
+  a context tag (actor +0x10F0, 8 x {u16 tag, u8 count}) left on the copy by a state whose end never ran there
+  (0x84; it selected the roll), and the stop clip comes with the transition, not the state. Now the player's machine
+  sends its tags with its state every 0.5 s and the host sets the copy's once it is in that state; and
+  copy_moves_block lets the copy take a relayed stop itself for 0.15 s (allow cell) before it is requested.
+- After the stop the copy went to its weapon idle (held away from Observer): held, it can no longer pick
+  Combat.Idle.* / Combat.BaseLogic.*, and it is sent back to Observer when its player goes there.
+- Sprint start: started 90 ms late, the copy jogged on for ~0.25 s, fell 1.0-1.4 m behind and rushed at 10-12 m/s
+  (its net input asks for distance to target / 0.2 s, up to 12); a relayed sprint start now plays at once.
+- Verified both ways (host copy of the joining player, joining machine's copy of the host player): same clips in
+  the same order 0.1-0.15 s later (walk, sprint, Test_hero_sprint_stop_nw, relaxed_idle_nw); no backward pelvis
+  steps; pelvis-to-entity offset like the player's own (-0.35..+0.19 m); stop overshoot 0.02-0.16 m, ends within
+  0.02 m; after the stop clip starts the copy moves 2.1-2.4 m against its player's 2.6.
+- The joining player's own stamina stopped regenerating twice after being knocked down by zombies (no stamina
+  change calls for it at all). stamina_mirror.RegenGuard (joining agent): in Observer, below its maximum and
+  unchanged for 1 s, it adds the normal rate (5.9/s) until the game's own regeneration moves it again.
+
 ### 2026-11-04 - why a sprinting copy lags, snaps and rushes (not fixed yet)
 Owner: the tired bug is gone, the glide is still there; while the joining player sprints, its model on the host
 lags a bit, goes back a bit and then moves forward.
