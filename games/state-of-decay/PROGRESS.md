@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - the joining player's sprint, sprint stop and landings play on its host copy
+Owner: the glide did not feel different after the look-ahead cap.
+- What showed as gliding: at a sprint stop the joining player's own machine plays Sprint.Stop.Normal (clip
+  Test_hero_sprint_stop_nw); its host copy stayed in Observer the whole time (never in the sprint state, so no
+  _SPRINT_NW either: the "slow mo" of a sprint), kept its running pose while the interpolation slowed it down and
+  snapped to idle 0.77 s later.
+- `own_state_relay.py`: the joining agent polls its own player's state (record +0xC, every 5 ms) and sends each
+  entry into GraphDriven.Sprint.RunForward / MachineDriven.Sprint.* / MachineDriven.Jump.* (and leaving them) as an
+  unsolicited "cstate" message on the control channel; falls and ObserverLogic are neutral (its little drops when
+  running downhill). The host agent's channel now has a reader thread (Channel.start_reader: streams to handlers,
+  replies to recv) and requests the state on its copy (pending +0xE, flag +0x18: entry actions run, so the gait
+  and clips do; the state tables are the same on both machines). The copy's own state machine left a requested
+  sprint for a stop or turn of its own: the sprint is held (re-requested every 20 ms when the copy drifts).
+- Verified (state log): the copy enters the sprint 0.03-0.04 s after the player with _SPRINT_NW, keeps it through
+  the player's falls, lands with it, enters Sprint.Stop.Normal 0.01 s after the player and returns to Observer
+  with it. Position overshoot at the stop is still 0.06-0.12 m (the copy now plays the stop animation over it).
+
 ### 2026-11-04 - remote copies' look-ahead capped (less glide-back, feet keep their speed)
 - CNetPlayerInput's interpolation (0x169E9C0) aims a remote copy at the last received position plus the received
   velocity times t, t = time since that update + 0.2 s (constant at 0x1978238), clamped at 1 s (0x169EB24..42):
