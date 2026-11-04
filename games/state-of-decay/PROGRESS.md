@@ -97,6 +97,17 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - a remote player no longer glides back after stopping
+Owner: on the host, after the joining player stops, its model still glides a bit back.
+- `glide_test.py` (sprint 2 s with Shift+W in the moving player's window, stop, sample both machines every 10 ms):
+  the host copy trailed 0.39-0.77 m while sprinting, ran 0.18-0.26 m past the stopping point and slid back over
+  ~1.1-1.3 s. CryEngine's networked-player input steers a remote copy towards each received position from the
+  last velocity (velocity interpolation), which overshoots a stop.
+- `pl_velocityInterpAlwaysSnap 1` (both machines, coop_setup.NET_RATES with the packet rates): the copy takes each
+  received position. Joining player on the host: overshoot 0.00 m in 4/4 runs, trailing 0.22-0.35 m; the host's
+  player on the joining machine: overshoot 0.00 m in 4/4, trailing 0.33-0.37 m. The copy still arrives ~0.85 s
+  after the key is released, the time the moving player itself needs to decelerate.
+
 ### 2026-11-03 - nobody could search containers since 10-29: a broken crash guard
 Owner: in a tent the host sees a highlighted suitcase, the joining player does not; neither gets a prompt, E does
 nothing.
