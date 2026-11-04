@@ -97,6 +97,15 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - remote copies' look-ahead capped (less glide-back, feet keep their speed)
+- CNetPlayerInput's interpolation (0x169E9C0) aims a remote copy at the last received position plus the received
+  velocity times t, t = time since that update + 0.2 s (constant at 0x1978238), clamped at 1 s (0x169EB24..42):
+  even fresh data is projected 0.2 s ahead, so a sprinting player's copy ran ~0.2 m past the stop and slid back.
+- `interp_cap.py` (both machines, coop_setup) caps t (minss with a cell; the t > 1 branch takes the cap too).
+  Sprint stop, per cap: 0 s -> overshoot 0.01-0.02 m, trailing 1.5 m; 0.05 s -> 0.01-0.04 m, 1.2 m; 0.1 s ->
+  0-0.08 m, 0.8 m; 0.15 s (kept) -> 0.05-0.12 m, 0.4-0.5 m (default: 0.18-0.26 m, 0.15-0.4 m). The copy keeps the
+  received velocity, so its animation is not slowed (unlike pl_velocityInterpAlwaysSnap).
+
 ### 2026-11-04 - run-turn loop fixed; the snap setting reverted (slow-motion feet)
 Owner: with the snap the joining player's model on the host moves "in slow mo a bit"; running one way it keeps
 playing an animation as if trying to turn around, indefinitely.
