@@ -97,6 +97,25 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - stamina mirrored both ways; copies' states played as late as their positions (glide)
+Owner: both bugs still there on both screens; Ed is still tired, the glide is visible for both characters.
+- Stamina is a field of the player actor (current +0x1678, maximum +0x1680), stored by its SetStamina 0x1462020.
+  The host's copy of the joining player was never set: 0 of 100, so its walk graph played exhausted_idle after every
+  stop (its player: relaxed_idle_nw). The joining machine's copy of the host player ran its own stamina simulation
+  with its own maximum (83 while the host player had 63). `stamina_mirror.py`: each agent sends its own player's
+  stamina every 50 ms ("stam"); the receiver writes it into the copy, and a hook at the start of SetStamina replaces
+  the value for copies, so the machine's own simulation does not move it. Verified both ways: within about 1 point
+  through sprint and rest, relaxed_idle on the copy when its player plays it.
+- Glide: after its stop clip started, the copy's body moved 0.2-0.6 m further than its player's (2.8-3.2 m against
+  2.6 m; stop_slide.py): the clip came about 30 ms after its player's but the position trails about 90 ms, so the
+  copy played the stop while still sliding up. own_state_relay now plays relayed states and clips DELAY_S (0.09 s)
+  after arrival, and runs both ways (the host agent streams the host player's states; the joining agent applies them
+  to its copy of the host player; copy_moves_block on any machine covers every player but its own). After: the
+  copy moves 1.8-2.5 m after its stop clip against its player's 2.0-2.75 m, in both directions; states follow one
+  to one, 110-130 ms behind.
+- Left: the joining machine's copy of the host player once took a landing (Jump.Forward.Land.Running) of its own.
+  With three or more players, a joining machine's copies of the other joining players get neither relay.
+
 ### 2026-11-04 - the copy's tired look came from its own locomotion state, not stamina
 Owner: the stamina bug is still there, and the glide; try new approaches (networking).
 - The joining machine has no stamina object at the local-player global (0x1EE2638 reads 0), and the host
