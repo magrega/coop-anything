@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - the copy's tired look came from its own locomotion state, not stamina
+Owner: the stamina bug is still there, and the glide; try new approaches (networking).
+- The joining machine has no stamina object at the local-player global (0x1EE2638 reads 0), and the host
+  player's stamina stayed at 8500 through four sprints of the joining player: the copy's tired clips were not
+  stamina. Its states showed why: the relay put it into Sprint.RunForward and 30-40 ms later its own picker took
+  it back to GraphDriven.Observer, where it ran the whole sprint on the walk graph (_WALK_INJURED during the
+  sprint, TestUnshared_exhausted_idle_enter / exhausted_idle_nw after it).
+- `copy_moves_block.py`: a hold cell per copy slot; while set, the copy also takes no transition to
+  GraphDriven.Observer or MachineDriven.ObserverLogic.*. own_state_relay sets it when its player enters a mirrored
+  state and clears it (then requests Observer) when the player leaves them.
+- Verified (four sprints, two with stops, several landings): the copy's states follow its player's one to one,
+  10-40 ms behind, no tired clips at all.
+- Networking: the control channel now has TCP_NODELAY. A prototype fed the joining player's own position and
+  velocity into the copy's net input every 5 ms (pose_proto.py). With the look-ahead cap at 0.15 it stops as
+  cleanly as the engine's own data (overshoot 0.00-0.07 m against 0.01-0.12 m) but trails more (170-180 ms against
+  80-130 ms), so it is not used.
+
 ### 2026-11-04 - the copy's sprint no longer twitches; no false tiredness; its own movement chosen by its player
 Owner: the glide is still there; after sprinting the joining player's model on the host bends over as if tired,
 while on its own screen it is not (its stamina had not run down that far).
