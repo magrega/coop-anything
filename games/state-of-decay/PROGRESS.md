@@ -97,6 +97,25 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - run-turn loop fixed; the snap setting reverted (slow-motion feet)
+Owner: with the snap the joining player's model on the host moves "in slow mo a bit"; running one way it keeps
+playing an animation as if trying to turn around, indefinitely.
+- Turn loop: running downhill, the joining player's own machine goes Sprint.RunForward -> Fall -> Land about every
+  0.7 s, and each time its host copy found a transition into AnimationTest.TurnTest.Right.ToRunRight (clip
+  Test_hero_run_turnright), an animation test state single player never enters; uphill nothing. It does not
+  depend on either camera (`turn_loop.py`: 6-7 turn clips per 2.5 s sprint at four host camera headings).
+  `turn_test_block.py` (both machines, coop_setup): the transition picker drops AnimationTest.Test01-04 and
+  TurnTest.* targets for records of the player state machine (chained in front of last_stand). After: 0-1 turn
+  clips per sprint.
+- Slow motion: `stride_test.py` (each machine records the left foot's forward offset every 20 ms, stride
+  frequency from it; noisy when the player falls or lands): with pl_velocityInterpAlwaysSnap 1 the copy stepped at
+  0.19-0.20 strides/s against the player's 1.6-2.2 (it moves at full speed, its animation gets no speed); with it
+  off 1.14 against 0.98. The snap is off again, so the glide-back overshoot is back (0.18-0.25 m in a fresh
+  session). pl_netSerialiseMaxSpeed 12 (set in NET_RATES and the test copies' system.cfg) did not change it in a
+  fresh session.
+- Next for the glide: position the copy from the player's own stream and give its animation the real speed,
+  instead of the engine's interpolation.
+
 ### 2026-11-04 - a remote player no longer glides back after stopping
 Owner: on the host, after the joining player stops, its model still glides a bit back.
 - `glide_test.py` (sprint 2 s with Shift+W in the moving player's window, stop, sample both machines every 10 ms):
