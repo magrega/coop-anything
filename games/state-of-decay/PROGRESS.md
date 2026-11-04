@@ -97,6 +97,24 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - why a sprinting copy lags, snaps and rushes (not fixed yet)
+Owner: the tired bug is gone, the glide is still there; while the joining player sprints, its model on the host
+lags a bit, goes back a bit and then moves forward.
+- How a copy moves: the engine's update (SetState 0x169E0B0) copies the received state into the copy's net input
+  (+0xC velocity, as a fraction of pl_netSerialiseMaxSpeed 12; +0x3C position); every frame 0x169E9C0 aims at
+  position + velocity * t (+0x58) and asks the copy's own locomotion for a move toward it, faster the further away.
+- What arrives: updates about every 30 ms (both games at ~30 FPS on one PC), gaps up to 63 ms, positions 0.12-0.48 m
+  behind the player, unevenly (one update moves 0.11 m, the next 0.43 m). The copy's time lag (100 ms smoothed)
+  swings between about 25 and 110 ms during a steady run, and it catches up at up to 16 m/s (sprint_jerk.py,
+  lag_swing.py). No backward position steps were measured.
+- Tried: `pose_relay.py` streams the player's own position and velocity every frame over the control channel; the
+  copy's machine replays them 50 ms late through a buffer every 4 ms, and a hook after SetState's copy keeps the
+  engine's own updates from moving the target. Time-lag swing with it 68-95 ms against 53-205 ms without: no clear
+  gain, so it is not started by the agents. The copy's own locomotion (speed set from the distance to the target)
+  seems to be the limit; next is driving the copy's position directly while keeping its gait speed.
+- Seen once: after a zombie grab, with its health low, the joining player's own stamina stopped regenerating (no
+  stamina change calls for it at all); not reproduced in a fresh session (regenerates from 50 and from 0.5).
+
 ### 2026-11-04 - stamina mirrored both ways; copies' states played as late as their positions (glide)
 Owner: both bugs still there on both screens; Ed is still tired, the glide is visible for both characters.
 - Stamina is a field of the player actor (current +0x1678, maximum +0x1680), stored by its SetStamina 0x1462020.
