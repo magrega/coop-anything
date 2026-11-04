@@ -97,6 +97,23 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-04 - the copy's sprint no longer twitches; no false tiredness; its own movement chosen by its player
+Owner: the glide is still there; after sprinting the joining player's model on the host bends over as if tired,
+while on its own screen it is not (its stamina had not run down that far).
+- With the sprint requested on it, the copy's own state machine left it for Sprint.Stop.Normal / HardTurn every
+  20-40 ms and was pulled back each time (a twitch through stop and turn clips for the whole sprint), and once rolled
+  (Dodge_roll_normal) at a stop its player did not dodge at. `copy_moves_block.py` (host): the transition picker
+  reports no transition when a copy's record would go to GraphDriven.Sprint.RunForward, MachineDriven.Sprint.* or
+  MachineDriven.Dodge.*; those come only from its player (own_state_relay requests, also Dodge.* now). The hold loop
+  is gone. A stop's clip comes with the transition, so the joining agent also sends its own player's clip starts in
+  those states ("cclip") and the host starts them on the copy.
+- Tired: the stamina actions (StaminaPenaltyMode 0x84, StaminaTankModify 0x85, StaminaTankRateMode 0x86) act on
+  the local player's stamina (global 0x1EE2638): the copy's sprint drained the host player's stamina (and the
+  joining machine's copy of the host player drained the joining player's), and the copy then played
+  exhausted_idle / _WALK_INJURED. remote_fx now wraps them for remote players' records like the camera actions.
+- Verified: the copy sprints without a single stop or turn in between, plays Test_hero_sprint_stop_nw 0.01-0.02 s
+  after its player, no exhausted clips in the 8 s after four sprints. Position overshoot at the stop 0.04-0.23 m.
+
 ### 2026-11-04 - the joining player's sprint, sprint stop and landings play on its host copy
 Owner: the glide did not feel different after the look-ahead cap.
 - What showed as gliding: at a sprint stop the joining player's own machine plays Sprint.Stop.Normal (clip
