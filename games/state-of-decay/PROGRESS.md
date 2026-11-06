@@ -109,6 +109,11 @@ Owner: the glide happens on the host's screen when the joining player stops afte
   0.2 m of its target, that function returns zero. The error left goes with the next step.
 - Verified from a fresh session, both ways, 4 runs each: the copy rests at +0.23-0.28 s, its player at +0.29-0.33 s,
   no movement back; it stands 0.09-0.16 m past the exact point until the next step. Sprint stops unchanged.
+- The first version only moved the problem: about 1.9 s after a stop the copy still jumped the 0.12-0.14 m left
+  (foot_slide.py, all runs), from the stuck check 0x169D3F0, whose error limit shrinks with the time off target until
+  it sets the copy onto the target. The same condition now skips that check (within 0.3 m, height included). Checked
+  from a normal startup: all patches in on both machines, no movement in 9 s of idle (3 runs), then a normal first
+  step (largest frame step 0.15 m).
 - Corrected reading of the controller: the +0x8C speed in that function is what moves the copy, not only the
   received velocity. Sprint speed wobble (5-8 m/s against 7) is still open.
 - Tools: foot_slide.py (foot speed on the ground, not run yet), side_view.py (host screen frames of a crossing run).
