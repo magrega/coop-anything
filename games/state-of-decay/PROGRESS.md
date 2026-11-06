@@ -97,6 +97,22 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-06 - walk-stop glide found and fixed: a stopped copy stands still
+Owner: the glide happens on the host's screen when the joining player stops after walking, and the other way round.
+(The previous entries measured sprints; a walk has no relayed state, so none of that touched this.)
+- walk_stop.py reproduced it both ways: the copy ran about 0.1 m past its player's end point, its idle clip started
+  at +0.17 s, and from +0.3 to +0.8 s the body slid back those 0.1 m with the idle feet standing still; it came to
+  rest at +0.76-0.82 s, its player at +0.3 s. The received velocity was already 0 by then.
+- Cause: the copy's desired velocity (0x169ED70) is (target - position) normalised, times +0x8C = clamp(distance /
+  0.2 s, 0.15, 12 m/s), with no regard for its player having stopped.
+- `rest_deadzone.py` (both machines, from coop_setup): with a received velocity under 0.3 m/s and the copy within
+  0.2 m of its target, that function returns zero. The error left goes with the next step.
+- Verified from a fresh session, both ways, 4 runs each: the copy rests at +0.23-0.28 s, its player at +0.29-0.33 s,
+  no movement back; it stands 0.09-0.16 m past the exact point until the next step. Sprint stops unchanged.
+- Corrected reading of the controller: the +0x8C speed in that function is what moves the copy, not only the
+  received velocity. Sprint speed wobble (5-8 m/s against 7) is still open.
+- Tools: foot_slide.py (foot speed on the ground, not run yet), side_view.py (host screen frames of a crossing run).
+
 ### 2026-11-04 - sprint snap-back and stop glide fixed: copies play their own clips, natively
 Owner: the glide is still there; while sprinting the joining player's model on the host lags a bit, goes back a bit
 and then moves forward.
