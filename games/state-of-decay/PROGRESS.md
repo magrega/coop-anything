@@ -111,7 +111,10 @@ Owner: Home Status and the Assets stockpiles still show 0 on the joining machine
 - Verified: Assets and Home Status show the host's numbers (Influence 51, Fame 103, Population, Labor, limits, morale);
   stockpiles are 0 on the host too in this save; a change on the host (Food +7, Influence +5) reaches the joining
   machine within about a second; Events shows the same list, the log byte-identical; with two joining players all three
-  machines agree, 2 joins without a crash; search and Take still work.
+  machines agree, 2 joins without a crash.
+- Stale loot screen: a taken item could stay on the right side. Emptying a container sets its searched flag; when the
+  roster delivered that before the relay's screen refresh, the finder had cleared the last node and the refresh was
+  lost. Searched flags now wait until the loot screen closes.
 - Left: Assets Possessions shows Cars 2 on the host and 0 here (Count.Cars is 0 on both, so it comes from elsewhere);
   the Home page still shows a "Facility Name" placeholder and another floor plan; the selected Events row has another
   icon; the Challenge tab is lit here and dimmed on the host.
