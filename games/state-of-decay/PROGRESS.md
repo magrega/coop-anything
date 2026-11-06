@@ -97,6 +97,22 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-07 - jogging copies skated on walk legs: pseudo speed fixed
+Owner: keep working on fixes, something minor. While jogging the player plays _RUN_NW and its copy only _WALK_NW.
+- foot_slide.py --walk: a copy's foot on the ground moved at 2-3.5 m/s, its player's at 0.7-0.8; the copy's feet were
+  not planting at all during a jog, on both screens. ag_jog.py (SetInput with hardware breakpoints) found one input
+  that differs: 16, the player movement controller's pseudo speed, 1.00 on the player and 0.34 on the copy.
+- Below sprint it is the length of the requested movement vector (read at 0x16890F7): the key press on a player's own
+  machine, but on a copy the received velocity, a fraction of pl_netSerialiseMaxSpeed: 4 m/s / 12 = 0.33.
+- `copy_gait.py` (both machines, from coop_setup): at that read, for every player but this machine's own, multiplied
+  by scale / 3.9 m/s, at most 1.0.
+- Verified from a normal startup, both ways: input 16 at 1.00; foot speed on the ground 0.64-0.84 m/s against the
+  player's 0.67-0.78; copies start _RUN_NW 0.1-0.15 s after _WALK_NW as their players do; after a stop no movement
+  (0.000 m, 4 runs); sprint clips unchanged. One walk stop in four came to rest late (+0.59 s, 0.20 m past).
+- Left: copies still sometimes play Test_hero_basic_turn90_* when their player starts moving.
+- Do not trace with trace_args at nargs 40: it was followed by both games' call mailboxes stalling and both agents
+  dying. Trace function entries with a few arguments and walk up by return address.
+
 ### 2026-11-06 - walk-stop glide found and fixed: a stopped copy stands still
 Owner: the glide happens on the host's screen when the joining player stops after walking, and the other way round.
 (The previous entries measured sprints; a walk has no relayed state, so none of that touched this.)
