@@ -39,7 +39,7 @@ runtime by Python scripts under the gitignored `local/` folder; no game file is 
 | Session stability | Asserts and missing-entity updates no longer kill the host (`crash_guards.py`); 25-minute play soak 19/19 cycles without a crash |
 | Time of day | Works (2026-11-02): the host's clock runs (it stood still at midnight as a server), joining players follow the host's time, `COOP_HOUR=12` or `tod_sync.py host 12` for daytime (`tod_sync.py`) |
 | Vehicles | Untested in co-op: the only vehicle at the story start is locked for both players |
-| Missions, community, journal data for the joining player | Not started (she now has a community record on the host; nothing mirrored to her machine) |
+| Journal for the joining player | People, skills, own backpack and weapon work (2026-11-07); stockpiles, events and missions not mirrored |
 
 ## How to run a session
 
@@ -96,6 +96,33 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 ## Findings log
 
 Newest first. One entry per discovery; link the NOTES section for details.
+
+### 2026-11-07 - joining players' own Tab menu, photo, name, backpack and random melee weapon
+Owner: fix inventory for clients: on a fresh start each should have their own inventory and a random melee weapon; fix
+photos and names in the Tab menu (a blank STRANGER).
+- UL's data tables (0x1EE25D4..0x1EE2628), character records ([0x1EA83B8]) and current record ([0x1EE2638], the
+  "stamina tank" of the earlier entries) exist on the host only. `client_roster.py`: the joining machine runs UL's own
+  loader 0x153FE20 once, then takes the host's data. The loader generates its tables at random on each load, in
+  varying sizes (another set of characters and traits, in another order), so running it is not enough: an Ed with
+  another man's photo and traits. The host's definitions and traits go in new memory the globals point at; in a
+  definition +8 (model path) is written locally and +0x10 is the local object.
+- Records and backpacks are plain data, sent when they change (every 0.5 s). +0xD8..+0xE7 stay local (+0xE0 empty: the
+  Tab menu does not need it). The player's own record gets this machine's entity id and flag bits 2|4, and
+  [0x1EE2638] points at it. 0x1653F60 gets its original code back: the game draws the backpack panel itself.
+- Melee: a record with no melee item, or with Ed's story Table Leg, gets one of the 48 at random at its join and the
+  engine item with it. It is saved, so a found or rolled weapon stays; a new game rolls again.
+- Searched containers: search node flags (bit 4, saved) are the host's. A joining machine offered "Search" on a looted
+  container and its player stayed in the search loop because the host refused; searched nodes now go with the records.
+- My own bug on the way: copying a backpack as 10 x 3 cells. The arrays hold 10 cells in slabs shared with other small
+  allocations, so every message overwrote neighbours: 1 in 6 joins crashed in the input listener list (0xC3C025, seen in
+  no older dump), and it also left the loot screen stale. +0xC is not a row count.
+- Verified from normal startups: Ed Jones (his photo, traits, skills) and, as second joining player, Lily Ritter (hers,
+  her Pistol G22), each "YOU", 146 of 146 definitions and traits equal to the host's; survivors and every journal tab
+  open; all 48 melee classes held on the joining machine without a crash; a search at a fresh container with the real E
+  key, Take moves the item into the backpack on both machines, the screen shows it and "Nothing left", a second Take
+  adds nothing; melee swings on both machines; sprint and stamina unchanged; 8 joins since the fix without a crash.
+- Left: Assets and Home show 0 for stockpiles and Events is empty (other data, not mirrored); using or dropping items
+  from the journal is untested.
 
 ### 2026-11-07 - jogging copies skated on walk legs: pseudo speed fixed
 Owner: keep working on fixes, something minor. While jogging the player plays _RUN_NW and its copy only _WALK_NW.
