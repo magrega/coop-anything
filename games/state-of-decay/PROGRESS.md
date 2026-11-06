@@ -109,7 +109,11 @@ Owner: keep working on fixes, something minor. While jogging the player plays _R
 - Verified from a normal startup, both ways: input 16 at 1.00; foot speed on the ground 0.64-0.84 m/s against the
   player's 0.67-0.78; copies start _RUN_NW 0.1-0.15 s after _WALK_NW as their players do; after a stop no movement
   (0.000 m, 4 runs); sprint clips unchanged. One walk stop in four came to rest late (+0.59 s, 0.20 m past).
-- Left: copies still sometimes play Test_hero_basic_turn90_* when their player starts moving.
+- Stray quarter turns: copies played Test_hero_basic_turn90_* in 1-7 of every 12 move starts, their players in none of
+  120. An AnimationGraphInput action sets TurnDir in Observer. `copy_turns.py` wraps that action's fire slot and skips
+  TurnDir left/right for copies (a limit on received speed left 11 in 48, the turn comes before the speed rises).
+  From a normal startup: 0 in 24 starts, both ways; 0 in 48 before that, live. Walk stops unchanged. Not tested: a
+  copy turning on the spot, which no longer steps.
 - Do not trace with trace_args at nargs 40: it was followed by both games' call mailboxes stalling and both agents
   dying. Trace function entries with a few arguments and walk up by return address.
 
