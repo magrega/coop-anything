@@ -120,7 +120,7 @@ photos and names in the Tab menu (a blank STRANGER).
   her Pistol G22), each "YOU", 146 of 146 definitions and traits equal to the host's; survivors and every journal tab
   open; all 48 melee classes held on the joining machine without a crash; a search at a fresh container with the real E
   key, Take moves the item into the backpack on both machines, the screen shows it and "Nothing left", a second Take
-  adds nothing; melee swings on both machines; sprint and stamina unchanged; 8 joins since the fix without a crash.
+  adds nothing; melee swings on both machines; sprint and stamina unchanged; 5 full joins since the fix without a crash.
 - Left: Assets and Home show 0 for stockpiles and Events is empty (other data, not mirrored); using or dropping items
   from the journal is untested.
 
