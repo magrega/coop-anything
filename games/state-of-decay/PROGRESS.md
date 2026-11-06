@@ -116,7 +116,11 @@ Owner: the glide happens on the host's screen when the joining player stops afte
   step (largest frame step 0.15 m).
 - Corrected reading of the controller: the +0x8C speed in that function is what moves the copy, not only the
   received velocity. Sprint speed wobble (5-8 m/s against 7) is still open.
-- Tools: foot_slide.py (foot speed on the ground, not run yet), side_view.py (host screen frames of a crossing run).
+- Seen on the host's screen (side_view.py --walk, about 10 frames/s, night): the joining player walks in, stops and
+  stands in the same spot for the remaining 1.2 s of frames. Coarse, but it agrees. Not yet confirmed by the owner.
+- Sprint speed wobble, tried: smoothing +0x8C per frame while the received speed is above 5 m/s (factor 0.25, 0.12).
+  No clear gain (body speed 5.5-7.4 and 5.0-8.2 without, 6.0-8.8 and 5.6-7.8 with; 0.12 worse), so it was removed.
+- Tools: foot_slide.py (foot speed on the ground), side_view.py (watcher's screen frames of a crossing run).
 
 ### 2026-11-04 - sprint snap-back and stop glide fixed: copies play their own clips, natively
 Owner: the glide is still there; while sprinting the joining player's model on the host lags a bit, goes back a bit
