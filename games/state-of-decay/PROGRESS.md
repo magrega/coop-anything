@@ -97,6 +97,25 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-07 - Home Status, Assets and Events on the joining machine
+Owner: Home Status and the Assets stockpiles still show 0 on the joining machine, and Events is empty.
+- Community numbers are UL's named variables (575 names, Stockpile.*, Family.*, Stat.*, Count.*, table 0x1E77920). A
+  value is a float through a bit shuffle and XORed with two session keys, which differ per machine, so raw copies decode
+  to garbage. client_roster: the host sends plain values of 12 categories when they change, the joining machine
+  encodes them with its keys. Game.*, Zombies.*, Trait.* and Character.* stay local (its own kill count among them).
+- Events: a ring of 45 entries of 0x165 bytes at 0x1EB8034 after its index and wrapped flag, plain data, copied whole
+  when it changes.
+- A second crash from the roster: when a second player joined, the first joining game crashed in the record walk
+  (0x14AF690, null at 0x118A600). A handle's serial must equal record +0x48, and a new record half written from the
+  agent's thread failed that. Records are now copied on the game's main thread (RtlMoveMemory through the mailbox).
+- Verified: Assets and Home Status show the host's numbers (Influence 51, Fame 103, Population, Labor, limits, morale);
+  stockpiles are 0 on the host too in this save; a change on the host (Food +7, Influence +5) reaches the joining
+  machine within about a second; Events shows the same list, the log byte-identical; with two joining players all three
+  machines agree, 2 joins without a crash; search and Take still work.
+- Left: Assets Possessions shows Cars 2 on the host and 0 here (Count.Cars is 0 on both, so it comes from elsewhere);
+  the Home page still shows a "Facility Name" placeholder and another floor plan; the selected Events row has another
+  icon; the Challenge tab is lit here and dimmed on the host.
+
 ### 2026-11-07 - joining players' own Tab menu, photo, name, backpack and random melee weapon
 Owner: fix inventory for clients: on a fresh start each should have their own inventory and a random melee weapon; fix
 photos and names in the Tab menu (a blank STRANGER).
