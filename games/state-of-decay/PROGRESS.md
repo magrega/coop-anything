@@ -115,9 +115,13 @@ Owner: Home Status and the Assets stockpiles still show 0 on the joining machine
 - Stale loot screen: a taken item could stay on the right side. Emptying a container sets its searched flag; when the
   roster delivered that before the relay's screen refresh, the finder had cleared the last node and the refresh was
   lost. Searched flags now wait until the loot screen closes.
-- Left: Assets Possessions shows Cars 2 on the host and 0 here (Count.Cars is 0 on both, so it comes from elsewhere);
-  the Home page still shows a "Facility Name" placeholder and another floor plan; the selected Events row has another
-  icon; the Challenge tab is lit here and dimmed on the host.
+- Cars (Possessions): the vehicle manager ([0x1EB14C8]) counts its occupied slots (0x14C67F0). The slots refer to live
+  vehicles the host owns, so only the count is sent, and on a joining machine that function returns it.
+- Checked on screen with real numbers: stockpiles set on the host to 7, 4, 11, 9, 3 showed the same in Home Status and
+  Assets on the joining machine, with limits, daily rates and Cars 2, then back to 0 on both.
+- Left: the Home page still shows a "Facility Name" placeholder and another floor plan; the selected Events row has
+  another icon; the Challenge tab is lit here and dimmed on the host (the joining game resets Game.RTS.NoJournalChallenge
+  at once, so rts_flags sets it again at every sync, harmlessly).
 
 ### 2026-11-07 - joining players' own Tab menu, photo, name, backpack and random melee weapon
 Owner: fix inventory for clients: on a fresh start each should have their own inventory and a random melee weapon; fix
