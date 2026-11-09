@@ -97,6 +97,24 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - client crash after the camera fix; native transitions switched off, leftovers cleaned instead
+- The joining game crashed in a zombie fight (dump 15:38:20): the query result reader (caller 0x17317C6) read a
+  garbage query pointer ("hotg") from an entry action of a mirrored hit reaction, reached through the pending
+  transition (0x1633E89, 0x170698C) that the camera fix had introduced. crash_guards.query_read_guard now treats
+  any pointer that is not a slot of the query pool (512 x 0x108 at 0x1EC00B8) like a null query (traced: all real
+  reads on both machines are pool slots).
+- Its log was full of "[Dude] Collision query limit (20) exceeded" / "Starting new AllowAimRequest mode before
+  leaving previous mode": the host's player's copy on the joining machine leaked AllowAimMode (0x07) and
+  CollisionQueryMode (0x1B) requests, its states being written (player_sm). remote_fx.CLIENT_ONLY skips both for
+  the other players' copies on joining machines (the host keeps them: the joining players' melee hits are its).
+- door_sync.USE_NATIVE is off again: the entry actions are what crashed, and grab states (still written) left the
+  downed camera behind anyway. downed_ui.Guard now does the cleanup: after a hit, down or grab state, once its
+  player stands in Observer for 2 s it removes leftover camera requests (types 3, 17, 28, none of which a standing
+  player has) and ends a stuck downed screen. Seen working in a fight (two cleanups logged).
+- Left: its own player's AllowAim / CollisionQuery pairs still leak on hits (written reaction over Observer):
+  224 "[Dude(1)] Collision query limit" warnings in a 4-minute fight. Older than today; a fix would run the
+  replaced state's exits without the new state's entries (0x1706590 exits level by level through 0x1706430).
+
 ### 2026-11-09 - camera no longer stays zoomed in after getting up (joining player)
 Owner: after getting up from being downed, the joining player's camera stays zoomed in on the player.
 - The camera and input modes (camera modes, aim, collision queries...) are requests in one manager,
