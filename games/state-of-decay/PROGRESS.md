@@ -97,6 +97,20 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - join shows the game's loading screen; no item hints on the host while a player joins
+Owner: after choosing a host the joining machine went back to the main menu and waited; it should show the single
+player loading screen. The host showed "You do not have an item selected" and similar hints over and over until the
+player had joined.
+- loading_screen: the joining machine calls the front end's own loading screen (0x1621100: eagle, spinner, LOADING,
+  5 random tips; 0x1617290 ends it) before the connect and ends it once the host reports "playing", so the setup is
+  hidden too. A failed join ends it, destroys and re-shows the Class3FrontEnd movie (back to the title screen) and
+  opens the main menu. Verified: loading screen from connect to the world, about 70 s, tips cycling.
+- join_gate: the hints came from the joining player's copy on the host. For a few seconds before its input is
+  forwarded its state machine reads garbage CNetPlayerInput, and its UseConsumable (0x94) and SelectItem (0x7A)
+  actions fired and failed (225 and 22 times in one join). Their fire handlers are wrapped: only the host player's
+  record and set-up players' records pass (ready() at the end of host_main, forget() when a player leaves).
+  Verified in 3 joins: 0 fires, no hint text, no hint on screen.
+
 ### 2026-11-07 - Home Status, Assets and Events on the joining machine
 Owner: Home Status and the Assets stockpiles still show 0 on the joining machine, and Events is empty.
 - Community numbers are UL's named variables (575 names, Stockpile.*, Family.*, Stat.*, Count.*, table 0x1E77920). A
