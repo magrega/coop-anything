@@ -97,6 +97,47 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - co-op fighting: hits decided on the joining machine, mirrored states held and 10x sooner, takedowns work
+Owner: the client has lag and latency, hits on zombies come with drag and sometimes zombies don't flinch; Z takedowns
+sometimes don't happen on the client while the host sees them; after some animations the client char wobbles.
+- Hits were decided twice: the joining machine's prediction showed a flinch 0.30 s after its swing clip on the
+  nearest zombie within 2 m in front, while the host applied the real hit 0.43 s into its copy's attack state on the
+  nearest zombie within 1.6 m of the copy in any direction. They disagreed on whether and whom (no flinch, or a host
+  reaction half a second late), and every weapon used one timing (the sledge connects at 0.53 s). Now one decision,
+  on the joining machine at its own swing's contact time (`melee_hits.py`): the game's apply-hit entries (action type
+  0x1D, reached by the dispatcher 0x17068A5 on every frame of the attack) hold a composite condition (type 17) whose
+  time-in-state part (type 9, 0x16FDE00: blackboard +0x1340 > min) is where the swing lands. Two hooks on its own
+  record (condition evaluator 0x170044A, dispatcher) collect the trees; `hit_predict` strikes when the time in state
+  reaches the window: reaction on the zombie it sees (front, heavy for heavy weapons), splat, and {"step": "hit",
+  "hid": host entity id} on the control channel. The host (`peer_melee` REQ cell) hits exactly that zombie on its
+  copy's next tick; its own 0.43 s timer is off for a player whose machine sent "hits_on". Dense fight: 45 swings, 30
+  hits named by the joining machine, 28 applied (2 zombies already dead there).
+- Mirrored states were left by the joining machine's own state machine, which has none of their context: a
+  finisher's Approach after 0.23 s (the Finisher then came late and idle right after: the takedown hardly showed), a
+  heavy reaction after 0.9 s, and held by a zombie it flipped between ReactionGrab.ByBasicZombie and
+  Reaction.Core.Blowout every 0.15 s. `last_stand.py` now also holds them: while its current state is the one the
+  host put it in (door_sync D+0x54) and of those families (Reaction.Core, Stunned.Basic.Down, Grab, ReactionGrab), the
+  transition picker reports none, except to down states and getting up (its own input), and after 8 s. A pending
+  "back to idle" from the host is not overwritten by its own pick in the same tick (that left it lying while its copy
+  stood).
+- Takedowns failed on the host too: the copy's net input pulled it back to its player's place during the approach
+  (the player stood still on its own machine), and the approach gave up (3 of 3 from 0.7-2.1 m). `copy_hold.py`
+  (host): while a copy is in Grab.* / ReactionGrab.*, its desired velocity is zero and its stuck check returns, so the
+  game's own move places it; door_sync sends the copy's place every 50 ms then and its player takes it. Takedowns now
+  pass (golf swing, knife down-stab, from 1-2.5 m), the player 0.0-0.13 m from its copy throughout.
+- Latency of mirrored states: through hud_relay's RMI (the host mailbox, shared with the zombie relay, then the game's
+  network) they reached the joining machine 0.1-0.4 s after the host copy's change; one message build in ten took
+  0.37-0.5 s (the clip log mapped every zombie skeleton through the mailbox). `door_sync.PeerStream` (host agent,
+  every 10 ms, a clip reader for the players only) sends them on the control channels and the joining agent writes
+  the numbers into its stub itself (DIRECT); clips and poses still go through Lua. Now 10-70 ms (approach 10 ms,
+  finisher 50-70 ms, its end 20-30 ms, hit reactions 50-100 ms).
+- Verified in fresh sessions: a 60 s fight with 4 zombies (0 state flip-flops on either machine, 0 position jumps on
+  the joining screen, copy within 0.18 m of its player 95% of the time), a staged grab (entered 10 ms after the host,
+  held, left 30 ms after, 0.05 m of movement), get-ups from a downed hit state, doors (open start / open away mirrored),
+  no Lua errors.
+- Left: the host copy jumped 1.2 m once during a tired swing (Combat.EdgedLight.Exhausted); the sprint speed wobble on
+  copies is unchanged. Not tested with 3 joining players.
+
 ### 2026-11-09 - no red "downed" marker over a standing joining player; context tags no longer pile up
 Owner: the joining player has a red downed icon (on the host's screen) though he is not downed.
 - It was the follower marker: map icon category 0x1E, icon 0x2F (a red falling figure), added every frame by the
