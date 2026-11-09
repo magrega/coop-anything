@@ -97,6 +97,21 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - every player's backpack on every machine
+Owner: the host's player has a backpack but the joining machine doesn't show it; everybody should see each other's.
+- UL puts a survivor's pack on its character in 0x1539290 (thiscall, ecx = character record, arg = entity): none
+  with the no-backpack trait; rucksack.chr while carrying a supply rucksack (record flags +0x15C & 0x200); else the
+  model and material of its backpack item (record +0xE8, item code 0x2xxxxxxx) on the attachment "pack" (0x1535B60),
+  else it removes it (0x1530D30). It ran for the host's own player on the host only: the joining players had no
+  pack anywhere, not even on their own screens.
+- pack_sync: the host runs it for the joining players' copies (their records are its own); a joining machine runs
+  it for every player, its own included, on the records the roster already copies, with a {name: record index} map
+  the host sends along ("packs"). Again when a player's pack item, carry flag, definition or entity changes, and
+  every 20 s.
+- Verified in a fresh session with no manual step: all four player views carry "pack" (host: its player and the
+  joining player's copy; joining machine: both), and screenshots from each side show the other's pack (green on the
+  host's survivor, red on the joining player's).
+
 ### 2026-11-09 - client crash after the camera fix; native transitions switched off, leftovers cleaned instead
 - The joining game crashed in a zombie fight (dump 15:38:20): the query result reader (caller 0x17317C6) read a
   garbage query pointer ("hotg") from an entry action of a mirrored hit reaction, reached through the pending
