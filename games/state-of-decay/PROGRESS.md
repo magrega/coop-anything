@@ -97,6 +97,27 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - camera no longer stays zoomed in after getting up (joining player)
+Owner: after getting up from being downed, the joining player's camera stays zoomed in on the player.
+- The camera and input modes (camera modes, aim, collision queries...) are requests in one manager,
+  0x1634090()+0x28: a map handle -> {pool type, index} at +0xA92A0 (head +4, size +8; camstack.py lists it). About
+  20 action types push one when their state begins (0x164C2F0) and remove it when it ends (0x164BD50).
+- door_sync wrote the mirrored hit-reaction and down states straight into the joining player's own state machine.
+  The state they replaced never ran its exit actions, so the modes it had pushed stayed for good: 452 after a zombie
+  fight, a downed camera (narrow view, 5.9 m) among them, which the camera kept using once no other state's camera
+  covered it (standing idle). It looked fine in combat idle and came back after Tab or a sprint.
+- Fix: those states (Reaction.Core.*, Reaction.Stunned.Basic.Down.*) go to the player's own machine as a native
+  transition (pending state +0xE, flag +0x18; NATIVE bit on the index in the message), like the return to idle
+  already did; door and grab states are still written directly, and so are the other players' copies.
+- The downed screen (UI mode [0x1EE54B4] = 1, washed-out colors) could stay on too: downed_ui.Guard on the joining
+  machine runs the game's recover (0x15F9680) once its player has been out of every down state for 2 s.
+- Verified in fresh sessions: health-floor downs (5 cycles) and 4 zombie knock-downs, each get-up back at the
+  normal view (FOV 0.785) with the mode map back to its 10 entries after the scripted downs; hits still show on its
+  own screen (55 Down.Hit states). The guard ended a stuck downed screen once in the zombie fight.
+- Left: pairs of type-1 / type-20 modes still pile up during fights (111 after the fight) while the joining player
+  idles; probably the other players' copies on that machine, whose states are still written. They did not affect
+  the camera. The stamina stall after knock-downs (stamina_mirror.RegenGuard) may have had the same cause.
+
 ### 2026-11-09 - journal synced: Home page, event icons, Challenge tab, game mode
 Owner: sync the journal (left from 2026-11-07: Home page placeholder, another Events icon, Challenge tab lit).
 - Home page: a joining game loads no save, so UL had no home site list ([0x1E7C26C] = 0) and no claimed home, and the
