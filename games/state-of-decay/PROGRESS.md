@@ -97,6 +97,31 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-10 - joining player no longer gets stuck in fights: stamina regeneration, hit reactions, fatal falls
+Owner: the client gets stuck in place when fighting with zombies, and the wobble is still there.
+- Stamina never came back: after fights the joining player's own stamina stood still (40 for 8 s; the host's player
+  regenerates ~6/s), so it fought on exhausted (slow tired swings, no sprint). Regeneration is the HealOverTimeMode
+  action's fire (0x1703450 -> stat change 0x1463AF0, type 2); its condition timer (type 92) was reset every frame by a
+  type 19 check on the actor's tag set (+0x10B0, copied to blackboard +0x12E0), held by context tags left on the
+  actor: 0x180 x41, 0x7E x11, 0x09 x6, 0xB6 x5 (the host's player had none, in any state seen). They come from states
+  that door_sync writes over (their exits never run). Now the door_sync stub removes every counted tag of its own
+  player whenever it writes a mirrored state (the written state adds none, its entry actions are skipped), and
+  `own_modes.TagGuard` removes what is left after 0.5 s in an idle state. Verified: regeneration at the host's rate
+  (40 -> 61 in 3.5 s on both), at most 3 tags (the current states') through a 90 s fight.
+- Hit reactions are no longer held (last_stand.HOLD_PREFIXES): its own input ends them early on its own machine, and
+  held until the host's idle arrived (0.04-0.13 s later each time) a player hit about once a second barely moved.
+  Grabs, takedowns and down states stay held.
+- Fatal falls: its own fall logic once chose Environmental.Land.Fatal, which waits for a death that never comes there
+  (its health is the host's); the player stood in it for good while its host copy idled. The picker stub now turns
+  Fall.FatalDamage / Land.Fatal into the heavy ones and drops Dead.Idle for its own player.
+- Paired moves: the copy's place was set on the player every 50 ms with its facing and view angles (steps and view
+  snaps during every grab and shove); it now glides there over 50 ms (set at once only from 1.5 m) and takes the
+  facing only when a paired clip starts.
+- Seen, not solved: while running into obstacles or over uneven ground the joining player's own machine sometimes
+  cycles Fall.FromRunning -> Fall.Normal -> Jump.Forward.Land.Running -> Observer (21 times in 4 s at one obstacle,
+  6 in 11 m uphill once), where the host's player stopped or pressed against the wall (WallPress). Not reproduced on
+  demand.
+
 ### 2026-11-09 - co-op fighting: hits decided on the joining machine, mirrored states held and 10x sooner, takedowns work
 Owner: the client has lag and latency, hits on zombies come with drag and sometimes zombies don't flinch; Z takedowns
 sometimes don't happen on the client while the host sees them; after some animations the client char wobbles.
