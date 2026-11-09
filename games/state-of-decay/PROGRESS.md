@@ -97,6 +97,24 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - journal synced: Home page, event icons, Challenge tab, game mode
+Owner: sync the journal (left from 2026-11-07: Home page placeholder, another Events icon, Challenge tab lit).
+- Home page: a joining game loads no save, so UL had no home site list ([0x1E7C26C] = 0) and no claimed home, and the
+  page showed the Flash placeholders ("FACILITY NAME", "Staff Name Goes Here", a sample floor plan). home_sync uses
+  UL's own save code: its modules write into a stream (0x143DD20 sets one up: 0x21000 bytes at +0x24, a key state at
+  +0..+0x10 that rolls with every byte, a check byte after every value). The host saves home (0x143A220), facilities
+  (0x1612E50) and events (0x14F0F40) into a stream of its own with a fixed key, so equal states give equal bytes; the
+  roster sends a module when it changes (checked every 2 s) and the joining machine loads it (0x143BE10, 0x1612D40,
+  0x14F1180) after registering the home sites from its map entities (0x143BE30).
+- Events: the raw ring copy is gone. Some entry fields are encoded with the session keys, so one row decoded to
+  another icon on the joining machine. Through the save code the values are plain. The entries start at 0x1EB8050.
+- Challenge tab and a fifth Outposts box: the joining game ran in game mode 1 (Breakdown), the default when no save
+  is loaded; the host's story save sets 0. UL sets Game.RTS.NoJournalChallenge to "mode != 1" every frame. The mode
+  (0x1416C60 read, 0x1416CB0 set, read in about 100 places) now goes with the story locks (rts_flags).
+- Verified after a fresh join: Home (Ranger Station, Medical Area, floor plan, 4 outpost slots), Events (same rows and
+  icons), Assets and the dimmed Challenge tab look the same on both machines; game mode 0 on both. The "!" on a new
+  event is each player's own unread mark.
+
 ### 2026-11-09 - join shows the game's loading screen; no item hints on the host while a player joins
 Owner: after choosing a host the joining machine went back to the main menu and waited; it should show the single
 player loading screen. The host showed "You do not have an item selected" and similar hints over and over until the
@@ -133,9 +151,7 @@ Owner: Home Status and the Assets stockpiles still show 0 on the joining machine
   vehicles the host owns, so only the count is sent, and on a joining machine that function returns it.
 - Checked on screen with real numbers: stockpiles set on the host to 7, 4, 11, 9, 3 showed the same in Home Status and
   Assets on the joining machine, with limits, daily rates and Cars 2, then back to 0 on both.
-- Left: the Home page still shows a "Facility Name" placeholder and another floor plan; the selected Events row has
-  another icon; the Challenge tab is lit here and dimmed on the host (the joining game resets Game.RTS.NoJournalChallenge
-  at once, so rts_flags sets it again at every sync, harmlessly).
+- Left (fixed 2026-11-09, see above): the Home page placeholder, another Events icon, the Challenge tab.
 
 ### 2026-11-07 - joining players' own Tab menu, photo, name, backpack and random melee weapon
 Owner: fix inventory for clients: on a fresh start each should have their own inventory and a random melee weapon; fix
