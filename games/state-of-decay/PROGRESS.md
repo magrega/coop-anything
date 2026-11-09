@@ -97,6 +97,22 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - joining player's own mode requests no longer pile up
+- Mode actions (24 types: AllowAimMode 0x07, CollisionQueryMode 0x1B, CameraMode 0x17 ...) push a request when
+  their state begins, keep it in the state's action data (begin/end arg 4) and remove it when it ends (0x1703B30 /
+  0x17034B0). The joining player's hit, down and grab states are written into its state machine, so the replaced
+  state never ended: one AllowAim / CollisionQuery pair per hit, and the game's limit of 20 collision queries per
+  actor was hit within a minute of fighting. The action data is no proof either: the written states reuse the same
+  scratch area (begin saw counters, not handles).
+- own_modes (joining machine, its own record only): every begin and end of those types goes through a stub with
+  a table per type keyed by the action instance (arg 3). A begin whose instance still has a request it never ended
+  first runs the original end on that value; an end ends the remembered value and forgets it. One action instance
+  cannot be active twice, so only stale requests go.
+- Verified in a fresh session: two scripted down cycles and three zombie fights (750 hit reactions, 4 downs): mode
+  map at 6-9 entries throughout (before: about 450 after one fight), no "Collision query limit" warning (before:
+  224 in four minutes), every get-up back at the normal view, no crash. "Starting new AllowAimRequest mode before
+  leaving previous mode" still shows (240 times) without any request left over; not traced.
+
 ### 2026-11-09 - every player's backpack on every machine
 Owner: the host's player has a backpack but the joining machine doesn't show it; everybody should see each other's.
 - UL puts a survivor's pack on its character in 0x1539290 (thiscall, ecx = character record, arg = entity): none
@@ -126,9 +142,7 @@ Owner: the host's player has a backpack but the joining machine doesn't show it;
   downed camera behind anyway. downed_ui.Guard now does the cleanup: after a hit, down or grab state, once its
   player stands in Observer for 2 s it removes leftover camera requests (types 3, 17, 28, none of which a standing
   player has) and ends a stuck downed screen. Seen working in a fight (two cleanups logged).
-- Left: its own player's AllowAim / CollisionQuery pairs still leak on hits (written reaction over Observer):
-  224 "[Dude(1)] Collision query limit" warnings in a 4-minute fight. Older than today; a fix would run the
-  replaced state's exits without the new state's entries (0x1706590 exits level by level through 0x1706430).
+- Left (fixed the same day, own_modes): its own player's AllowAim / CollisionQuery pairs leaked on hits.
 
 ### 2026-11-09 - camera no longer stays zoomed in after getting up (joining player)
 Owner: after getting up from being downed, the joining player's camera stays zoomed in on the player.
