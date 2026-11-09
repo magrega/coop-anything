@@ -97,6 +97,18 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-09 - no red "downed" marker over a standing joining player; context tags no longer pile up
+Owner: the joining player has a red downed icon (on the host's screen) though he is not downed.
+- It was the follower marker: map icon category 0x1E, icon 0x2F (a red falling figure), added every frame by the
+  host's per-record update (0x1547920; 0x1548279 checks the trait with 0x1532570, then 0x1548B4B adds it). The
+  joining player's record is one of the host's survivors, and this one had Trait.Behavior.FollowPlayer
+  (0x6080001) from the save. client_roster.drop_follow takes it off at the join (coop_setup.host_main) and again
+  if the game gives it back (roster loop). Verified: no 0x1E icon at a fresh join, none on the host's screen.
+- On the way: context tags (ContextTag action 0x20: begin adds *a2 to the actor, end removes it; counted) piled up
+  on the joining player like the mode requests (tag 0x180 at 197 after a fight, copied to its copy on the host by
+  own_state_relay). own_modes now covers type 0x20 the same way (a stale add of the same action instance is
+  removed with the original end); after a fight with 63 hits and 3 downs the count stayed at 1.
+
 ### 2026-11-09 - joining player's own mode requests no longer pile up
 - Mode actions (24 types: AllowAimMode 0x07, CollisionQueryMode 0x1B, CameraMode 0x17 ...) push a request when
   their state begins, keep it in the state's action data (begin/end arg 4) and remove it when it ends (0x1703B30 /
