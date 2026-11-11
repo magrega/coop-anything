@@ -97,6 +97,21 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-11 - client post-grab forward/back pull: zombie grabs no longer impose host position
+Owner clarification: the wobble is on the joining player's screen, while running after being grabbed or hit several
+times; the character bursts forward then returns, as if pulled rather than normally lagging.
+- This matches the paired-move pose relay in door_sync: while both Grab.* (the player's Z takedown) and ReactionGrab.*
+  (a zombie holding the player) were active, PeerStates sent the host copy's position every 50 ms and CLIENT_LUA
+  glided the joining player there. A final pose glide could still run after the host returned it to ordinary movement,
+  writing an old host-copy position into a now-running client player, which makes the visible forward pull and return.
+- The host now sends a final pose-cancel entry whenever it leaves a player Grab.* takedown. CLIENT_LUA invalidates all
+  queued pose-glide timers before normal movement can start. More importantly, only the player's own Grab.* takedowns
+  carry positions at all: ReactionGrab.* still mirrors state and animation but never sets the joining player's position.
+  The host's player copy stays where the normal net input puts it after a zombie releases the player.
+- A fresh session with the patch joined normally. The normal finisher retest was not clean: nearby zombies repeatedly
+  knocked the joining player down; after they were parked the nearest target was several kilometres away. The change is
+  therefore verified for loading and control flow, not yet for a clean completed finisher. Bundle rebuilt.
+
 ### 2026-11-10 - joining player no longer gets stuck in fights: stamina regeneration, hit reactions, fatal falls
 Owner: the client gets stuck in place when fighting with zombies, and the wobble is still there.
 - Stamina never came back: after fights the joining player's own stamina stood still (40 for 8 s; the host's player
