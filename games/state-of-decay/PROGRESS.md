@@ -97,6 +97,24 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-11 - leaving then selecting the host rejoins successfully
+Owner: after leaving as the client, clicking the host in Join Game did nothing.
+- Cause: `Agent.join()` stayed blocked in `ch.recv(None)` from the first session after a local leave returned the game
+  to the front-end. It never went back to `Agent.run()` to poll the Co-op Play menu's requests, so the host-row click
+  produced no `menu request` log entry. The host did detect `Dude(1) left the game` and removed its records, but did
+  not close that channel until this fix.
+- `Channel.close()` now shuts down the control socket when the host notices a departed player. The joining side wakes
+  every 0.5 s while waiting for host messages: if its host actor has gone, it closes the channel and returns to
+  Agent.run's menu listener; a host channel close takes the same path. The front-end is at title depth 0 after leaving,
+  so its normal `Play State of Decay` title confirmation brings back the main-menu table and Co-op Play.
+- A first leave exposed a stale queued stamina update, which tried to find the released local actor and terminated the
+  agent. `stamina_mirror.apply` now ignores it. Old `ClientStream`, hit predictor, tag guard and stamina regen workers
+  also exit when their saved actor is no longer the current local actor, so a rejoin cannot read or alter released
+  state memory.
+- Verified with test copies: join, local `disconnect`, client log `left the host: returning to Co-op Play menu`, title
+  confirmation, Co-op Play -> Join Game -> host selection; the client reached the host world as Dude(1), completed
+  client_first/client_main and both agents reported `co-op session ready: 2 players` again.
+
 ### 2026-11-11 - client post-grab forward/back pull: zombie grabs no longer impose host position
 Owner clarification: the wobble is on the joining player's screen, while running after being grabbed or hit several
 times; the character bursts forward then returns, as if pulled rather than normally lagging.
