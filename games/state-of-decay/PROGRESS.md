@@ -97,6 +97,25 @@ Main test tools: `zm_soak.py` (long stress cycles), `soak_ab.sh`, `zm_freeze_tes
 
 Newest first. One entry per discovery; link the NOTES section for details.
 
+### 2026-11-13 - idle host zombies now appear on joining machines before combat
+Owner: host and client stand together; the host sees a nearby zombie, but the client only gets one after triggering
+its attention. Goal: zombies visible with their distinct idle animations to every player.
+- The host relay already listed active nearby zombies, but an idle client has most of its live zombie pool hidden at
+  the far parking position. The normal match is by equal name or within 4 m of the host's lagged position, so those
+  hidden bodies could never be selected; a combat wake-up was the first event that made a matching body network
+  relevant. `zombie_sync.CLIENT_LUA` now assigns unused hidden, live pool bodies to any unmatched live host entries,
+  moves the body once to the host's lagged position before revealing it, and lets the existing model, dress, position
+  and clip logic take over. Corpses remain position-matched and are never pool-born.
+- The new handler initially failed to load: it grew to 19 KB and the game's ExecuteBuffer silently truncated one large
+  Lua injection, leaving `function ClCoopZombieModels` without its final `end` (client log: Lua parse error near EOF).
+  `zombie_dress.install_client` now sends it in 6 KB quoted source chunks, accumulates them, then compiles once with
+  `loadstring`. The client sequence cvar advanced after the repaired handler loaded, proving regular zombie RMI
+  delivery is active again.
+- Verified with fresh spawned host zombies before client combat: the host relay carried three live entries and the
+  client pool fallback made three live bodies visible immediately, 0.5-0.8 m from the players (`poolborn=3`), with
+  their host clips. The final normal-RMI session received lists (`coop_zseq` advanced to 465); its final idle/wander
+  clip query was blocked by a stalled client diagnostic log, so idle-clip persistence still needs a visual playtest.
+
 ### 2026-11-11 - leaving then selecting the host rejoins successfully
 Owner: after leaving as the client, clicking the host in Join Game did nothing.
 - Cause: `Agent.join()` stayed blocked in `ch.recv(None)` from the first session after a local leave returned the game
