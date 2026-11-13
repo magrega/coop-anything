@@ -113,8 +113,15 @@ its attention. Goal: zombies visible with their distinct idle animations to ever
   delivery is active again.
 - Verified with fresh spawned host zombies before client combat: the host relay carried three live entries and the
   client pool fallback made three live bodies visible immediately, 0.5-0.8 m from the players (`poolborn=3`), with
-  their host clips. The final normal-RMI session received lists (`coop_zseq` advanced to 465); its final idle/wander
-  clip query was blocked by a stalled client diagnostic log, so idle-clip persistence still needs a visual playtest.
+  their host clips. Regular RMI delivery was confirmed after restart (`coop_zseq` advanced past 600 and client dress
+  cvar had the current host zombie records).
+- Quiet animation completion: a host zombie returned to GraphDriven.Observer may not start another loop through either
+  captured animation entry point, so the client otherwise kept its last strike one-shot. relay_message now supplies a
+  stable `Test_wander_run` or `Test_wander_creep` loop by host id only when there is no real host loop, and clears the
+  stale one-shot; real loops always win. Verified from the serialized quiet relay entries after resetting live zombies
+  to Observer: they carry the distinct wander/creep loops and no attack clip. The final visual capture was invalid
+  because the client camera was underground after the test state reset, so a normal-player visual confirmation remains
+  desirable but the relay output is verified.
 
 ### 2026-11-11 - leaving then selecting the host rejoins successfully
 Owner: after leaving as the client, clicking the host in Join Game did nothing.
